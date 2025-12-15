@@ -425,7 +425,6 @@ public class AutoAnchor extends Module {
 				}
 			}
 		}
-		}
 		currentPos = tempPos;
 	}
 	public double getAnchorDamage(BlockPos anchorPos, PlayerEntity target, PlayerEntity predict) {
