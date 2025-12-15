@@ -80,13 +80,19 @@ public class AutoAnchor extends Module {
 			add(new BooleanSetting("WhenSpamming", true, () -> page.getValue() == Page.General && spamPlace.isOpen()));
 	private final BooleanSetting usingPause =
 			add(new BooleanSetting("UsingPause", true, () -> page.getValue() == Page.General));
+	private final BooleanSetting aggressive =
+			add(new BooleanSetting("Aggressive", true, () -> page.getValue() == Page.General).setParent());
+	private final SliderSetting aggressiveHealth =
+			add(new SliderSetting("AggroHealth", 10.0, 0.0, 36.0, () -> page.getValue() == Page.General && aggressive.isOpen()).setSuffix("hp"));
+	private final BooleanSetting instantExplode =
+			add(new BooleanSetting("InstantExplode", true, () -> page.getValue() == Page.General && aggressive.isOpen()));
 	private final EnumSetting<SwingSide> swingMode = add(new EnumSetting<>("Swing", SwingSide.All, () -> page.getValue() == Page.General));
 	private final SliderSetting placeDelay =
-			add(new SliderSetting("Delay", 100, 0, 500, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
+			add(new SliderSetting("Delay", 50, 0, 500, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
 	private final SliderSetting spamDelay =
-			add(new SliderSetting("SpamDelay", 200, 0, 1000, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
+			add(new SliderSetting("SpamDelay", 100, 0, 1000, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
 	private final SliderSetting updateDelay =
-			add(new SliderSetting("UpdateDelay", 200, 0, 1000, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
+			add(new SliderSetting("UpdateDelay", 100, 0, 1000, 1, () -> page.getValue() == Page.General).setSuffix("ms"));
 
 	private final BooleanSetting rotate =
 			add(new BooleanSetting("Rotate", true, () -> page.getValue() == Page.Rotate).setParent());
@@ -107,17 +113,17 @@ public class AutoAnchor extends Module {
 	private final BooleanSetting terrainIgnore =
 			add(new BooleanSetting("TerrainIgnore", true, () -> page.getValue() == Page.Calc));
 	public final SliderSetting minDamage =
-			add(new SliderSetting("Min", 4.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
+			add(new SliderSetting("Min", 3.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
 	public final SliderSetting breakMin =
-			add(new SliderSetting("ExplosionMin", 4.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
+			add(new SliderSetting("ExplosionMin", 3.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
 	public final SliderSetting headDamage =
 			add(new SliderSetting("ForceHead", 7.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
 	private final SliderSetting minPrefer =
-			add(new SliderSetting("Prefer", 7.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
+			add(new SliderSetting("Prefer", 5.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
 	private final SliderSetting maxSelfDamage =
-			add(new SliderSetting("MaxSelf", 8.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
+			add(new SliderSetting("MaxSelf", 10.0, 0.0, 36.0, 0.1, () -> page.getValue() == Page.Calc).setSuffix("dmg"));
 	public final SliderSetting predictTicks =
-			add(new SliderSetting("Predict", 2, 0.0, 50, 1, () -> page.getValue() == Page.Calc).setSuffix("ticks"));
+			add(new SliderSetting("Predict", 3, 0.0, 50, 1, () -> page.getValue() == Page.Calc).setSuffix("ticks"));
 
 	private final EnumSetting<KillAura.TargetESP> mode = add(new EnumSetting<>("TargetESP", KillAura.TargetESP.Jello, () -> page.getValue() == Page.Render));
 	private final ColorSetting color = add(new ColorSetting("TargetColor", new Color(255, 255, 255, 250), () -> page.getValue() == Page.Render));
@@ -213,9 +219,14 @@ public class AutoAnchor extends Module {
 		if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) return;
 		if (currentPos != null) {
 			if (breakCrystal.getValue()) CombatUtil.attackCrystal(new BlockPos(currentPos), rotate.getValue(), false);
+
+			boolean isAggressive = aggressive.getValue() && displayTarget != null && EntityUtil.getHealth(displayTarget) <= aggressiveHealth.getValue();
+			long currentDelay = isAggressive ? (long) (placeDelay.getValueFloat() / 2) : (long) placeDelay.getValueFloat();
+			long currentSpamDelay = isAggressive ? (long) (spamDelay.getValueFloat() / 2) : (long) spamDelay.getValueFloat();
+
 			boolean shouldSpam = this.spam.getValue() && (!mineSpam.getValue() || Alien.BREAK.isMining(currentPos, false));
 			if (shouldSpam) {
-				if (!delayTimer.passed((long) (spamDelay.getValueFloat()))) {
+				if (!delayTimer.passed(currentSpamDelay)) {
 					return;
 				}
 				delayTimer.reset();
@@ -223,12 +234,16 @@ public class AutoAnchor extends Module {
 					placeBlock(currentPos, rotate.getValue(), anchor);
 				}
 				if (!chargeList.contains(currentPos)) {
-					delayTimer.reset();
 					clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), glowstone);
 					chargeList.add(currentPos);
 				}
 				chargeList.remove(currentPos);
 				clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), unBlock);
+
+				if (instantExplode.getValue() && isAggressive && getBlock(currentPos) == Blocks.RESPAWN_ANCHOR) {
+					clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), unBlock);
+				}
+
 				if (spamPlace.getValue() && inSpam.getValue()) {
 					if (yawStep.getValue() && checkFov.getValue()) {
 						Direction side = getClickSide(currentPos);
@@ -248,26 +263,31 @@ public class AutoAnchor extends Module {
 				}
 			} else {
 				if (canPlace(currentPos, range.getValue(), breakCrystal.getValue())) {
-					if (!delayTimer.passed((long) (placeDelay.getValueFloat()))) {
+					if (!delayTimer.passed(currentDelay)) {
 						return;
 					}
 					delayTimer.reset();
 					placeBlock(currentPos, rotate.getValue(), anchor);
 				} else if (getBlock(currentPos) == Blocks.RESPAWN_ANCHOR) {
 					if (!chargeList.contains(currentPos)) {
-						if (!delayTimer.passed((long) (placeDelay.getValueFloat()))) {
+						if (!delayTimer.passed(currentDelay)) {
 							return;
 						}
 						delayTimer.reset();
 						clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), glowstone);
 						chargeList.add(currentPos);
 					} else {
-						if (!delayTimer.passed((long) (placeDelay.getValueFloat()))) {
+						if (!delayTimer.passed(currentDelay)) {
 							return;
 						}
 						delayTimer.reset();
 						chargeList.remove(currentPos);
 						clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), unBlock);
+
+						if (instantExplode.getValue() && isAggressive) {
+							clickBlock(currentPos, getClickSide(currentPos), rotate.getValue(), unBlock);
+						}
+
 						if (spamPlace.getValue()) {
 							if (yawStep.getValue() && checkFov.getValue()) {
 								Direction side = getClickSide(currentPos);

@@ -75,6 +75,12 @@ public class AutoCrystal extends Module {
     private final SliderSetting targetRange = add(new SliderSetting("TargetRange", 12.0, 0.0, 20.0, () -> page.getValue() == Page.General).setSuffix("m"));
     private final SliderSetting updateDelay = add(new SliderSetting("UpdateDelay", 50, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
     private final SliderSetting wallRange = add(new SliderSetting("WallRange", 6.0, 0.0, 6.0, () -> page.getValue() == Page.General).setSuffix("m"));
+    private final BooleanSetting multiPlace = add(new BooleanSetting("MultiPlace", true, () -> page.getValue() == Page.General).setParent());
+    private final SliderSetting multiPlaceCount = add(new SliderSetting("MPCount", 2, 1, 5, 1, () -> page.getValue() == Page.General && multiPlace.isOpen()));
+    private final BooleanSetting inhibit = add(new BooleanSetting("Inhibit", true, () -> page.getValue() == Page.General).setParent());
+    private final SliderSetting inhibitRange = add(new SliderSetting("InhibitRange", 3.0, 0.0, 6.0, () -> page.getValue() == Page.General && inhibit.isOpen()).setSuffix("m"));
+    private final BooleanSetting sequential = add(new BooleanSetting("Sequential", false, () -> page.getValue() == Page.General).setParent());
+    private final SliderSetting sequentialDelay = add(new SliderSetting("SeqDelay", 50, 0, 500, () -> page.getValue() == Page.General && sequential.isOpen()).setSuffix("ms"));
     //Rotate
     private final BooleanSetting rotate = add(new BooleanSetting("Rotate", true, () -> page.getValue() == Page.Rotation).setParent());
     private final BooleanSetting onBreak = add(new BooleanSetting("OnBreak", false, () -> rotate.isOpen() && page.getValue() == Page.Rotation));
@@ -91,6 +97,9 @@ public class AutoCrystal extends Module {
     private final SliderSetting range = add(new SliderSetting("Range", 5.0, 0.0, 6, () -> page.getValue() == Page.Interact).setSuffix("m"));
     private final SliderSetting noSuicide = add(new SliderSetting("NoSuicide", 3.0, 0.0, 10.0, () -> page.getValue() == Page.Interact).setSuffix("hp"));
     private final BooleanSetting smart = add(new BooleanSetting("Smart", true, () -> page.getValue() == Page.Interact));
+    private final BooleanSetting aggressive = add(new BooleanSetting("Aggressive", true, () -> page.getValue() == Page.Interact).setParent());
+    private final SliderSetting aggressiveHealth = add(new SliderSetting("AggroHealth", 10.0, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("hp"));
+    private final SliderSetting aggressiveMin = add(new SliderSetting("AggroMin", 2.0, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("dmg"));
     private final BooleanSetting place = add(new BooleanSetting("Place", true, () -> page.getValue() == Page.Interact).setParent());
     private final SliderSetting placeDelay = add(new SliderSetting("PlaceDelay", 300, 0, 1000, () -> page.getValue() == Page.Interact && place.isOpen()).setSuffix("ms"));
     private final EnumSetting<SwapMode> autoSwap = add(new EnumSetting<>("AutoSwap", SwapMode.Off, () -> page.getValue() == Page.Interact && place.isOpen()));
@@ -150,6 +159,10 @@ public class AutoCrystal extends Module {
     double currentFade = 0;
     private BlockPos tempPos, breakPos, syncPos;
     private Vec3d placeVec3d, curVec3d;
+    private final ArrayList<BlockPos> multiPlacePositions = new ArrayList<>();
+    private final ArrayList<BlockPos> inhibitPositions = new ArrayList<>();
+    private final Timer sequentialTimer = new Timer();
+    private int sequentialIndex = 0;
 
     public enum TargetESP {
         Box,
@@ -234,14 +247,43 @@ public class AutoCrystal extends Module {
 
     private void doInteract() {
         if (shouldReturn()) {
+            sequentialIndex = 0;
+            sequentialTimer.reset();
             return;
         }
         if (breakPos != null) {
             doBreak(breakPos);
             breakPos = null;
         }
-        if (crystalPos != null) {
+
+        if (sequential.getValue() && !multiPlacePositions.isEmpty()) {
+            if (sequentialTimer.passedMs((long) sequentialDelay.getValue())) {
+                if (sequentialIndex < multiPlacePositions.size()) {
+                    BlockPos seqPos = multiPlacePositions.get(sequentialIndex);
+                    doCrystal(seqPos);
+                    sequentialIndex++;
+                    sequentialTimer.reset();
+                } else {
+                    sequentialIndex = 0;
+                }
+            }
+        } else if (multiPlace.getValue() && !multiPlacePositions.isEmpty()) {
+            for (BlockPos pos : multiPlacePositions) {
+                if (canPlaceCrystal(pos, false, false)) {
+                    doPlace(pos);
+                }
+            }
+        } else if (crystalPos != null) {
             doCrystal(crystalPos);
+        }
+
+        if (inhibit.getValue() && !inhibitPositions.isEmpty()) {
+            for (BlockPos inhPos : inhibitPositions) {
+                if (canPlaceCrystal(inhPos, false, false)) {
+                    doPlace(inhPos);
+                    break;
+                }
+            }
         }
     }
 
@@ -261,6 +303,8 @@ public class AutoCrystal extends Module {
     }
 
     private void updateCrystalPos() {
+        multiPlacePositions.clear();
+        inhibitPositions.clear();
         getCrystalPos();
         lastDamage = tempDamage;
         crystalPos = tempPos;
@@ -359,10 +403,40 @@ public class AutoCrystal extends Module {
                     bestTarget = pap;
                 }
 
-                if (bestTarget != null && (tempPos == null || bestDamage > tempDamage)) {
-                    displayTarget = bestTarget.player;
-                    tempPos = pos;
-                    tempDamage = bestDamage;
+                if (bestTarget != null && bestDamage > 0) {
+                    if (multiPlace.getValue() && multiPlacePositions.size() < multiPlaceCount.getValueInt()) {
+                        if (!multiPlacePositions.contains(pos)) {
+                            multiPlacePositions.add(pos);
+                        }
+                    }
+
+                    if (tempPos == null || bestDamage > tempDamage) {
+                        displayTarget = bestTarget.player;
+                        tempPos = pos;
+                        tempDamage = bestDamage;
+                    }
+                }
+            }
+
+            if (inhibit.getValue() && displayTarget != null) {
+                Vec3d enemyPos = displayTarget.getPos();
+                double inhibitRangeSq = inhibitRange.getValue() * inhibitRange.getValue();
+
+                for (BlockPos inhibPos : BlockUtil.getSphere((float) inhibitRange.getValue())) {
+                    if (eyePos.squaredDistanceTo(inhibPos.toCenterPos()) > rangeSq) continue;
+                    if (enemyPos.squaredDistanceTo(inhibPos.toCenterPos()) > inhibitRangeSq) continue;
+                    if (!canPlaceCrystal(inhibPos, true, false)) continue;
+
+                    float enemyDamage = calculateDamage(inhibPos, displayTarget, displayTarget);
+                    if (enemyDamage < 2.0f) continue;
+
+                    float selfDamage = calculateDamage(inhibPos, self.player, self.predict);
+                    if (selfDamage > maxSelfValue) continue;
+                    if (noSuicideValue > 0 && selfDamage > playerHealth - noSuicideValue) continue;
+
+                    if (!inhibitPositions.contains(inhibPos) && inhibitPositions.size() < 3) {
+                        inhibitPositions.add(inhibPos);
+                    }
                 }
             }
             double wallRangeValue = wallRange.getValue();
@@ -538,6 +612,9 @@ public class AutoCrystal extends Module {
     }
 
     private double getDamage(PlayerEntity target) {
+        if (aggressive.getValue() && EntityUtil.getHealth(target) <= aggressiveHealth.getValue()) {
+            return aggressiveMin.getValue();
+        }
         if (!PacketMine.INSTANCE.obsidian.isPressed() && slowPlace.getValue() && lastBreakTimer.passedMs((long) slowDelay.getValue()) && !PistonCrystal.INSTANCE.isOn()) {
             return slowMinDamage.getValue();
         }
