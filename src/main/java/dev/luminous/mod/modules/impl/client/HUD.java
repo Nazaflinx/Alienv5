@@ -29,24 +29,30 @@ public class HUD extends Module {
     public final BooleanSetting armor = add(new BooleanSetting("Armor", true));
     public final BooleanSetting up = add(new BooleanSetting("Up", false));
     public final BooleanSetting customFont = add(new BooleanSetting("CustomFont", true));
-    public final ColorSetting color = add(new ColorSetting("Color", new Color(208, 0, 0)));
-    public final ColorSetting pulse = add(new ColorSetting("Pulse", new Color(79, 0, 0)).injectBoolean(true));
+    public final ColorSetting color = add(new ColorSetting("Color", new Color(0, 180, 255)));
+    public final ColorSetting pulse = add(new ColorSetting("Pulse", new Color(138, 43, 226)).injectBoolean(true));
     public final BooleanSetting waterMark = add(new BooleanSetting("WaterMark", true));
     public final StringSetting waterMarkString = add(new StringSetting("Title", "%hackname% %version%"));
-    public final SliderSetting offset = add(new SliderSetting("Offset", 1, 0, 100, -1));
+    public final SliderSetting offset = add(new SliderSetting("Offset", 5, 0, 100, -1));
+    public final BooleanSetting shadow = add(new BooleanSetting("Shadow", true));
+    public final BooleanSetting background = add(new BooleanSetting("Background", true).setParent());
+    public final SliderSetting bgAlpha = add(new SliderSetting("BGAlpha", 120, 0, 255, 1, background::isOpen));
+    public final BooleanSetting rounded = add(new BooleanSetting("Rounded", true, background::isOpen));
+    public final BooleanSetting glow = add(new BooleanSetting("Glow", true));
+    public final BooleanSetting icons = add(new BooleanSetting("Icons", true));
     public final BooleanSetting sync = add(new BooleanSetting("InfoColorSync", true));
     public final BooleanSetting lowerCase = add(new BooleanSetting("LowerCase", false));
     public final BooleanSetting fps = add(new BooleanSetting("FPS", true));
     public final BooleanSetting ping = add(new BooleanSetting("Ping", true));
     public final BooleanSetting tps = add(new BooleanSetting("TPS", true));
     public final BooleanSetting ip = add(new BooleanSetting("IP", false));
-    public final BooleanSetting time = add(new BooleanSetting("Time", false));
+    public final BooleanSetting time = add(new BooleanSetting("Time", true));
     public final BooleanSetting speed = add(new BooleanSetting("Speed", true));
     public final BooleanSetting brand = add(new BooleanSetting("Brand", false));
     public final BooleanSetting potions = add(new BooleanSetting("Potions", true));
     public final BooleanSetting coords = add(new BooleanSetting("Coords", true));
-    private final SliderSetting pulseSpeed = add(new SliderSetting("Speed", 1, 0, 5, 0.1));
-    private final SliderSetting pulseCounter = add(new SliderSetting("Counter", 10, 1, 50));
+    private final SliderSetting pulseSpeed = add(new SliderSetting("Speed", 1.5, 0, 5, 0.1));
+    private final SliderSetting pulseCounter = add(new SliderSetting("Counter", 15, 1, 50));
     public HUD() {
         super("HUD", Category.Client);
         setChinese("界面");
@@ -93,10 +99,24 @@ public class HUD extends Module {
                     case 3 -> power = "IV";
                     case 4 -> power = "V";
                 }
-                String s = potion.getName().getString() + " " + power;
+                String icon = icons.getValue() ? "◆ " : "";
+                String s = icon + potion.getName().getString() + " " + power;
                 String s2 = getDuration(potionEffect);
-                String text = s + " " + s2;
+                String text = s + " §7" + s2;
                 int x = getWidth(text);
+
+                if (background.getValue()) {
+                    int bgWidth = x + 6;
+                    int bgHeight = getHeight() + 2;
+                    int bgColor = new Color(0, 0, 0, bgAlpha.getValueInt()).getRGB();
+
+                    if (rounded.getValue()) {
+                        dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), windowWidth - x - 3, y - 1, bgWidth, bgHeight, 2, bgColor);
+                    } else {
+                        dev.luminous.api.utils.render.Render2DUtil.drawRect(drawContext.getMatrices(), windowWidth - x - 3, y - 1, bgWidth, bgHeight, bgColor);
+                    }
+                }
+
                 TextUtil.drawString(drawContext, text, windowWidth - x, y, potionEffect.getEffectType().getColor(), customFont.getValue());
                 y -= height;
             }
@@ -188,19 +208,57 @@ public class HUD extends Module {
     }
 
     private void drawText(DrawContext drawContext, String s, int x, int y) {
+        if (background.getValue()) {
+            int bgWidth = getWidth(s) + 6;
+            int bgHeight = getHeight() + 2;
+            int bgColor = new Color(0, 0, 0, bgAlpha.getValueInt()).getRGB();
+
+            if (rounded.getValue()) {
+                dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), x - 3, y - 1, bgWidth, bgHeight, 2, bgColor);
+            } else {
+                dev.luminous.api.utils.render.Render2DUtil.drawRect(drawContext.getMatrices(), x - 3, y - 1, bgWidth, bgHeight, bgColor);
+            }
+        }
+
+        int textColor;
         if (sync.getValue()) {
             ModuleList.INSTANCE.counter--;
             if (lowerCase.getValue()) {
                 s = s.toLowerCase();
             }
-            TextUtil.drawString(drawContext, s, x, y, ModuleList.INSTANCE.getColor(ModuleList.INSTANCE.counter), customFont.getValue());
-            return;
-        }
-        if (pulse.booleanValue) {
-            TextUtil.drawStringPulse(drawContext, s, x, y, color.getValue(), pulse.getValue(), pulseSpeed.getValue(), pulseCounter.getValueInt(), customFont.getValue());
+            textColor = ModuleList.INSTANCE.getColor(ModuleList.INSTANCE.counter);
+        } else if (pulse.booleanValue) {
+            long time = System.currentTimeMillis();
+            int pulseColor = dev.luminous.api.utils.render.ColorUtil.interpolateColor(color.getValue(), pulse.getValue(), (float) (Math.sin((time / (pulseSpeed.getValue() * 100))) * 0.5 + 0.5));
+            textColor = pulseColor;
         } else {
-            TextUtil.drawString(drawContext, s, x, y, color.getValue().getRGB(), customFont.getValue());
+            textColor = color.getValue().getRGB();
         }
+
+        if (shadow.getValue()) {
+            if (customFont.getValue()) {
+                dev.luminous.mod.gui.font.FontRenderers.ui.drawString(drawContext.getMatrices(), s, x + 1, y + 1, new Color(0, 0, 0, 100).getRGB());
+            } else {
+                drawContext.drawText(mc.textRenderer, s, x + 1, y + 1, new Color(0, 0, 0, 100).getRGB(), false);
+            }
+        }
+
+        if (glow.getValue() && !sync.getValue()) {
+            Color glowColor = new Color(textColor);
+            int glowAlpha = 80;
+            int glowRGB = new Color(glowColor.getRed(), glowColor.getGreen(), glowColor.getBlue(), glowAlpha).getRGB();
+
+            for (int i = -1; i <= 1; i++) {
+                for (int j = -1; j <= 1; j++) {
+                    if (i == 0 && j == 0) continue;
+                    if (customFont.getValue()) {
+                        dev.luminous.mod.gui.font.FontRenderers.ui.drawString(drawContext.getMatrices(), s, x + i, y + j, glowRGB);
+                    }
+                }
+            }
+        }
+
+        TextUtil.drawString(drawContext, s, x, y, textColor, customFont.getValue());
     }
 
     public static String getDuration(StatusEffectInstance pe) {

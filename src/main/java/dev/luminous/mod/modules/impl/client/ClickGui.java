@@ -34,19 +34,19 @@ public class ClickGui extends Module {
 	public final SliderSetting animationTime = add(new SliderSetting("AnimationTime", 200, 0, 1000, 1, () -> page.getValue() == Pages.General));
 	public final EnumSetting<Easing> ease = add(new EnumSetting<>("Ease", Easing.QuadInOut, () -> page.getValue() == Pages.General));
 
-	public final ColorSetting color = add(new ColorSetting("Main", 1297678336, () -> page.getValue() == Pages.Color));
-	public final ColorSetting mainEnd = add(new ColorSetting("MainEnd", -2113929216, () -> page.getValue() == Pages.Color).injectBoolean(false));
-	public final ColorSetting mainHover = add(new ColorSetting("Hover", 2086600704, () -> page.getValue() == Pages.Color));
-	public final ColorSetting bar = add(new ColorSetting("Bar", 1781465088, () -> page.getValue() == Pages.Color));
-	public final ColorSetting barEnd = add(new ColorSetting("BarEnd", -2113929216, () -> page.getValue() == Pages.Color).injectBoolean(false));
-	public final ColorSetting disableText = add(new ColorSetting("DisableText", new Color(255, 255, 255), () -> page.getValue() == Pages.Color));
-	public final ColorSetting enableText = add(new ColorSetting("EnableText", -1, () -> page.getValue() == Pages.Color));
-	public final ColorSetting enableTextS = add(new ColorSetting("EnableText2", -2424832, () -> page.getValue() == Pages.Color));
-	public final ColorSetting module = add(new ColorSetting("Module", 4144959, () -> page.getValue() == Pages.Color));
-	public final ColorSetting moduleHover = add(new ColorSetting("ModuleHover", 693703957, () -> page.getValue() == Pages.Color));
-	public final ColorSetting setting = add(new ColorSetting("Setting", 4144959, () -> page.getValue() == Pages.Color));
-	public final ColorSetting settingHover = add(new ColorSetting("SettingHover", 693703957, () -> page.getValue() == Pages.Color));
-	public final ColorSetting background = add(new ColorSetting("Background", 1881014272, () -> page.getValue() == Pages.Color));
+	public final ColorSetting color = add(new ColorSetting("Main", new Color(0, 180, 255, 200), () -> page.getValue() == Pages.Color));
+	public final ColorSetting mainEnd = add(new ColorSetting("MainEnd", new Color(138, 43, 226, 200), () -> page.getValue() == Pages.Color).injectBoolean(true));
+	public final ColorSetting mainHover = add(new ColorSetting("Hover", new Color(100, 220, 255, 220), () -> page.getValue() == Pages.Color));
+	public final ColorSetting bar = add(new ColorSetting("Bar", new Color(30, 30, 50, 180), () -> page.getValue() == Pages.Color));
+	public final ColorSetting barEnd = add(new ColorSetting("BarEnd", new Color(50, 50, 80, 180), () -> page.getValue() == Pages.Color).injectBoolean(true));
+	public final ColorSetting disableText = add(new ColorSetting("DisableText", new Color(180, 180, 180, 255), () -> page.getValue() == Pages.Color));
+	public final ColorSetting enableText = add(new ColorSetting("EnableText", new Color(255, 255, 255, 255), () -> page.getValue() == Pages.Color));
+	public final ColorSetting enableTextS = add(new ColorSetting("EnableText2", new Color(0, 220, 255, 255), () -> page.getValue() == Pages.Color));
+	public final ColorSetting module = add(new ColorSetting("Module", new Color(40, 40, 60, 200), () -> page.getValue() == Pages.Color));
+	public final ColorSetting moduleHover = add(new ColorSetting("ModuleHover", new Color(60, 60, 90, 220), () -> page.getValue() == Pages.Color));
+	public final ColorSetting setting = add(new ColorSetting("Setting", new Color(35, 35, 55, 180), () -> page.getValue() == Pages.Color));
+	public final ColorSetting settingHover = add(new ColorSetting("SettingHover", new Color(55, 55, 85, 200), () -> page.getValue() == Pages.Color));
+	public final ColorSetting background = add(new ColorSetting("Background", new Color(20, 20, 30, 230), () -> page.getValue() == Pages.Color));
 	public ClickGui() {
 		super("ClickGui", Category.Client);
 		setChinese("菜单");

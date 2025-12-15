@@ -26,38 +26,45 @@ public class ModuleList extends Module {
 
     public static ModuleList INSTANCE;
     private final BooleanSetting font = add(new BooleanSetting("Font", true));
-    private final SliderSetting height = add(new SliderSetting("Height", 0, -2, 10));
+    private final SliderSetting height = add(new SliderSetting("Height", 1, -2, 10));
     private final SliderSetting textOffset = add(new SliderSetting("TextOffset", 2, -5, 10));
-    private final SliderSetting xOffset = add(new SliderSetting("XOffset", 0, 0, 500));
-    private final SliderSetting yOffset = add(new SliderSetting("YOffset", 25, 0, 300));
+    private final SliderSetting xOffset = add(new SliderSetting("XOffset", 2, 0, 500));
+    private final SliderSetting yOffset = add(new SliderSetting("YOffset", 2, 0, 300));
     public final EnumSetting<AnimateUtil.AnimMode> animMode = add(new EnumSetting<>("AnimMode", AnimateUtil.AnimMode.Mio));
-    public final SliderSetting disableSpeed = add(new SliderSetting("DisableSpeed", 0.09, -0.2, 1, 0.01));
-    public final SliderSetting enableSpeed = add(new SliderSetting("EnableSpeed", 0.12, 0.0, 1, 0.01));
-    public final SliderSetting ySpeed = add(new SliderSetting("YSpeed", 0.44, 0.01, 1, 0.01));
+    public final SliderSetting disableSpeed = add(new SliderSetting("DisableSpeed", 0.12, -0.2, 1, 0.01));
+    public final SliderSetting enableSpeed = add(new SliderSetting("EnableSpeed", 0.15, 0.0, 1, 0.01));
+    public final SliderSetting ySpeed = add(new SliderSetting("YSpeed", 0.5, 0.01, 1, 0.01));
     public final BooleanSetting lowerCase = add(new BooleanSetting("LowerCase", false));
     private final BooleanSetting forgeHax = add(new BooleanSetting("ForgeHax", false));
     private final BooleanSetting space = add(new BooleanSetting("Space", true));
     private final BooleanSetting down = add(new BooleanSetting("Down", false));
-    private final BooleanSetting animY = add(new BooleanSetting("AnimY", false));
+    private final BooleanSetting animY = add(new BooleanSetting("AnimY", true));
     private final BooleanSetting scissor = add(new BooleanSetting("Scissor", false));
     private final BooleanSetting onlyBind = add(new BooleanSetting("OnlyBind", false));
+    private final BooleanSetting shadow = add(new BooleanSetting("Shadow", true));
+    private final BooleanSetting glow = add(new BooleanSetting("Glow", false).setParent());
+    private final SliderSetting glowAlpha = add(new SliderSetting("GlowAlpha", 60, 0, 255, 1, glow::isOpen));
     private final EnumSetting<ColorMode> colorMode = add(new EnumSetting<>("ColorMode", ColorMode.Pulse));
     private final SliderSetting rainbowSpeed = add(new SliderSetting("RainbowSpeed", 4, 1, 10, 0.1, () -> colorMode.getValue() == ColorMode.Rainbow ));
-    private final SliderSetting saturation = add(new SliderSetting("Saturation", 130.0f, 1.0f, 255.0f, () -> colorMode.getValue() == ColorMode.Rainbow ));
-    private final SliderSetting pulseSpeed = add(new SliderSetting("PulseSpeed", 1, 0, 5, 0.1, () -> colorMode.getValue() == ColorMode.Pulse ));
-    private final SliderSetting pulseCounter = add(new SliderSetting("Counter", 10, 1, 50, () -> colorMode.getValue() == ColorMode.Pulse));
-    private final SliderSetting rainbowDelay = add(new SliderSetting("Delay", 350, 0, 1000, () -> colorMode.getValue() == ColorMode.Rainbow));
-    private final ColorSetting color = add(new ColorSetting("Color", new Color(173, 0, 0, 255), () -> colorMode.getValue() != ColorMode.Rainbow));
-    private final ColorSetting endColor = add(new ColorSetting("EndColor", new Color(255, 0, 0, 255), () -> colorMode.getValue() == ColorMode.Pulse));
-    private final BooleanSetting rect = add(new BooleanSetting("Rect", true));
+    private final SliderSetting saturation = add(new SliderSetting("Saturation", 200.0f, 1.0f, 255.0f, () -> colorMode.getValue() == ColorMode.Rainbow ));
+    private final SliderSetting pulseSpeed = add(new SliderSetting("PulseSpeed", 1.5, 0, 5, 0.1, () -> colorMode.getValue() == ColorMode.Pulse ));
+    private final SliderSetting pulseCounter = add(new SliderSetting("Counter", 15, 1, 50, () -> colorMode.getValue() == ColorMode.Pulse));
+    private final SliderSetting rainbowDelay = add(new SliderSetting("Delay", 250, 0, 1000, () -> colorMode.getValue() == ColorMode.Rainbow));
+    private final ColorSetting color = add(new ColorSetting("Color", new Color(0, 180, 255, 255), () -> colorMode.getValue() != ColorMode.Rainbow));
+    private final ColorSetting endColor = add(new ColorSetting("EndColor", new Color(138, 43, 226, 255), () -> colorMode.getValue() == ColorMode.Pulse));
+    private final BooleanSetting rect = add(new BooleanSetting("Rect", true).setParent());
+    private final SliderSetting rectWidth = add(new SliderSetting("RectWidth", 2, 1, 5, 1, rect::isOpen));
+    private final BooleanSetting gradient = add(new BooleanSetting("Gradient", false, rect::isOpen));
     private final BooleanSetting backGround = add(new BooleanSetting("BackGround", true).setParent());
     private final BooleanSetting bgSync = add(new BooleanSetting("Sync", false, backGround::isOpen));
-    private final ColorSetting bgColor = add(new ColorSetting("BGColor", new Color(0, 0, 0, 100), backGround::isOpen));
+    private final BooleanSetting rounded = add(new BooleanSetting("Rounded", true, backGround::isOpen));
+    private final SliderSetting roundRadius = add(new SliderSetting("Radius", 2, 0, 5, 1, () -> backGround.isOpen() && rounded.getValue()));
+    private final ColorSetting bgColor = add(new ColorSetting("BGColor", new Color(0, 0, 0, 120), backGround::isOpen));
     private final BooleanSetting preY = add(new BooleanSetting("PreY", false));
     private final BooleanSetting fold = add(new BooleanSetting("Fold", false).setParent());
     private final SliderSetting foldSpeed = add(new SliderSetting("FoldSpeed", 0.1, 0.01, 1, 0.01, fold::isOpen));
     private final BooleanSetting fade = add(new BooleanSetting("Fade", true).setParent());
-    private final SliderSetting fadeSpeed = add(new SliderSetting("FadeSpeed", 0.05, 0.01, 1, 0.01, fade::isOpen));
+    private final SliderSetting fadeSpeed = add(new SliderSetting("FadeSpeed", 0.08, 0.01, 1, 0.01, fade::isOpen));
     private List<Modules> modulesList = new java.util.ArrayList<>();
 
     private enum ColorMode {
@@ -152,27 +159,68 @@ public class ModuleList extends Module {
                 drawContext.enableScissor(0, 0, (mc.getWindow().getScaledWidth() - xOffset.getValueInt() - (rect.getValue() ? 2 : 0)), mc.getWindow().getScaledHeight());
             }
             if (backGround.getValue()) {
-                Render2DUtil.drawRect(drawContext.getMatrices(), textX - 1,
-                        (int) modules.y,
-                        ((float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() + 1) - textX + 1,
-                        getFontHeight() + height.getValueInt(),
-                        bgSync.getValue() ? ColorUtil.injectAlpha(getColor(counter), (int) (bgColor.getValue().getAlpha() * modules.fade)) : ColorUtil.injectAlpha(bgColor.getValue().getRGB(), (int) (bgColor.getValue().getAlpha() * modules.fade)));
+                int bgX = textX - 2;
+                int bgY = (int) modules.y;
+                int bgWidth = ((float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() + 1) - textX + 2;
+                int bgHeight = getFontHeight() + height.getValueInt();
+                int bgColorValue = bgSync.getValue() ? ColorUtil.injectAlpha(getColor(counter), (int) (bgColor.getValue().getAlpha() * modules.fade)) : ColorUtil.injectAlpha(bgColor.getValue().getRGB(), (int) (bgColor.getValue().getAlpha() * modules.fade));
+
+                if (rounded.getValue()) {
+                    Render2DUtil.drawRound(drawContext.getMatrices(), bgX, bgY, bgWidth, bgHeight, roundRadius.getValueInt(), bgColorValue);
+                } else {
+                    Render2DUtil.drawRect(drawContext.getMatrices(), bgX, bgY, bgWidth, bgHeight, bgColorValue);
+                }
             }
+
+            int textColor = ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade));
+
+            if (shadow.getValue()) {
+                int shadowColor = new Color(0, 0, 0, (int) (100 * modules.fade)).getRGB();
+                if (font.getValue()) {
+                    FontRenderers.ui.drawString(drawContext.getMatrices(), getSuffix(modules.name), textX + 1, (int) (modules.y + 2 + textOffset.getValueInt()), shadowColor);
+                } else {
+                    drawContext.drawText(mc.textRenderer, getSuffix(modules.name), textX + 1, (int) (modules.y + 2 + textOffset.getValueInt()), shadowColor, false);
+                }
+            }
+
+            if (glow.getValue()) {
+                Color glowColor = new Color(textColor, true);
+                int glowRGB = new Color(glowColor.getRed(), glowColor.getGreen(), glowColor.getBlue(), (int) (glowAlpha.getValueInt() * modules.fade)).getRGB();
+
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        if (i == 0 && j == 0) continue;
+                        if (font.getValue()) {
+                            FontRenderers.ui.drawString(drawContext.getMatrices(), getSuffix(modules.name), textX + i, (int) (modules.y + 1 + textOffset.getValueInt() + j), glowRGB);
+                        }
+                    }
+                }
+            }
+
             if (font.getValue()) {
-                FontRenderers.ui.drawString(drawContext.getMatrices() ,getSuffix(modules.name), textX, (int) (modules.y + 1 + textOffset.getValueInt()), ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)));
+                FontRenderers.ui.drawString(drawContext.getMatrices(), getSuffix(modules.name), textX, (int) (modules.y + 1 + textOffset.getValueInt()), textColor);
             } else {
-                drawContext.drawTextWithShadow(mc.textRenderer, getSuffix(modules.name), textX, (int) (modules.y + 1 + textOffset.getValueInt()), ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)));
+                drawContext.drawTextWithShadow(mc.textRenderer, getSuffix(modules.name), textX, (int) (modules.y + 1 + textOffset.getValueInt()), textColor);
             }
+
             if (scissor.getValue()) drawContext.disableScissor();
             if (fold.getValue()) {
                 drawContext.getMatrices().pop();
             }
             if (rect.getValue()) {
-                Render2DUtil.drawRect(drawContext.getMatrices(), (float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() - 1,
-                        (int) modules.y,
-                        1,
-                        getFontHeight() + height.getValueInt(),
-                        ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)));
+                int rectX = (int) ((float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() - rectWidth.getValueInt());
+                int rectY = (int) modules.y;
+                int rectH = getFontHeight() + height.getValueInt();
+
+                if (gradient.getValue()) {
+                    int nextColor = counter + 1 < modulesList.size() ? getColor(counter + 1) : getColor(counter);
+                    Render2DUtil.drawGradientRect(drawContext.getMatrices(), rectX, rectY, rectWidth.getValueInt(), rectH,
+                            ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)),
+                            ColorUtil.injectAlpha(nextColor, (int) (255 * modules.fade)));
+                } else {
+                    Render2DUtil.drawRect(drawContext.getMatrices(), rectX, rectY, rectWidth.getValueInt(), rectH,
+                            ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)));
+                }
             }
             if (modules.isEnabled || !preY.getValue()) {
                 if (down.getValue()) {
