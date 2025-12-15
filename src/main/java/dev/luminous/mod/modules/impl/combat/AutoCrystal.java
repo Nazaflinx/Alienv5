@@ -68,12 +68,12 @@ public class AutoCrystal extends Module {
     private final EnumSetting<Page> page = add(new EnumSetting<>("Page", Page.General));
     //General
     private final BooleanSetting preferAnchor = add(new BooleanSetting("PreferAnchor", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting breakOnlyHasCrystal = add(new BooleanSetting("OnlyHold", true, () -> page.getValue() == Page.General));
-    private final EnumSetting<SwingSide> swingMode = add(new EnumSetting<>("Swing", SwingSide.All, () -> page.getValue() == Page.General));
-    private final BooleanSetting eatingPause = add(new BooleanSetting("EatingPause", true, () -> page.getValue() == Page.General));
-    private final SliderSetting switchCooldown = add(new SliderSetting("SwitchPause", 100, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
-    private final SliderSetting targetRange = add(new SliderSetting("TargetRange", 12.0, 0.0, 20.0, () -> page.getValue() == Page.General).setSuffix("m"));
-    private final SliderSetting updateDelay = add(new SliderSetting("UpdateDelay", 50, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
+    private final BooleanSetting breakOnlyHasCrystal = add(new BooleanSetting("OnlyHold", false, () -> page.getValue() == Page.General));
+    private final EnumSetting<SwingSide> swingMode = add(new EnumSetting<>("Swing", SwingSide.Server, () -> page.getValue() == Page.General));
+    private final BooleanSetting eatingPause = add(new BooleanSetting("EatingPause", false, () -> page.getValue() == Page.General));
+    private final SliderSetting switchCooldown = add(new SliderSetting("SwitchPause", 50, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
+    private final SliderSetting targetRange = add(new SliderSetting("TargetRange", 15.0, 0.0, 20.0, () -> page.getValue() == Page.General).setSuffix("m"));
+    private final SliderSetting updateDelay = add(new SliderSetting("UpdateDelay", 0, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
     private final SliderSetting wallRange = add(new SliderSetting("WallRange", 6.0, 0.0, 6.0, () -> page.getValue() == Page.General).setSuffix("m"));
     private final BooleanSetting multiPlace = add(new BooleanSetting("MultiPlace", true, () -> page.getValue() == Page.General).setParent());
     private final SliderSetting multiPlaceCount = add(new SliderSetting("MPCount", 2, 1, 5, 1, () -> page.getValue() == Page.General && multiPlace.isOpen()));
@@ -91,23 +91,23 @@ public class AutoCrystal extends Module {
     private final SliderSetting fov = add(new SliderSetting("Fov", 30, 0, 50, () -> rotate.isOpen() && yawStep.getValue() && checkFov.getValue() && page.getValue() == Page.Rotation));
     private final SliderSetting priority = add(new SliderSetting("Priority", 10,0 ,100, () -> rotate.isOpen() && yawStep.getValue() && page.getValue() == Page.Rotation));
     //Place
-    private final SliderSetting autoMinDamage = add(new SliderSetting("PistonMin", 5.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
-    private final SliderSetting minDamage = add(new SliderSetting("Min", 5.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
-    private final SliderSetting maxSelf = add(new SliderSetting("Self", 12.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
-    private final SliderSetting range = add(new SliderSetting("Range", 5.0, 0.0, 6, () -> page.getValue() == Page.Interact).setSuffix("m"));
-    private final SliderSetting noSuicide = add(new SliderSetting("NoSuicide", 3.0, 0.0, 10.0, () -> page.getValue() == Page.Interact).setSuffix("hp"));
+    private final SliderSetting autoMinDamage = add(new SliderSetting("PistonMin", 3.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
+    private final SliderSetting minDamage = add(new SliderSetting("Min", 3.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
+    private final SliderSetting maxSelf = add(new SliderSetting("Self", 10.0, 0.0, 36.0, () -> page.getValue() == Page.Interact).setSuffix("dmg"));
+    private final SliderSetting range = add(new SliderSetting("Range", 6.0, 0.0, 6, () -> page.getValue() == Page.Interact).setSuffix("m"));
+    private final SliderSetting noSuicide = add(new SliderSetting("NoSuicide", 2.0, 0.0, 10.0, () -> page.getValue() == Page.Interact).setSuffix("hp"));
     private final BooleanSetting smart = add(new BooleanSetting("Smart", true, () -> page.getValue() == Page.Interact));
     private final BooleanSetting aggressive = add(new BooleanSetting("Aggressive", true, () -> page.getValue() == Page.Interact).setParent());
-    private final SliderSetting aggressiveHealth = add(new SliderSetting("AggroHealth", 10.0, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("hp"));
-    private final SliderSetting aggressiveMin = add(new SliderSetting("AggroMin", 2.0, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("dmg"));
+    private final SliderSetting aggressiveHealth = add(new SliderSetting("AggroHealth", 12.0, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("hp"));
+    private final SliderSetting aggressiveMin = add(new SliderSetting("AggroMin", 1.5, 0.0, 36.0, () -> page.getValue() == Page.Interact && aggressive.isOpen()).setSuffix("dmg"));
     private final BooleanSetting place = add(new BooleanSetting("Place", true, () -> page.getValue() == Page.Interact).setParent());
-    private final SliderSetting placeDelay = add(new SliderSetting("PlaceDelay", 300, 0, 1000, () -> page.getValue() == Page.Interact && place.isOpen()).setSuffix("ms"));
-    private final EnumSetting<SwapMode> autoSwap = add(new EnumSetting<>("AutoSwap", SwapMode.Off, () -> page.getValue() == Page.Interact && place.isOpen()));
+    private final SliderSetting placeDelay = add(new SliderSetting("PlaceDelay", 50, 0, 1000, () -> page.getValue() == Page.Interact && place.isOpen()).setSuffix("ms"));
+    private final EnumSetting<SwapMode> autoSwap = add(new EnumSetting<>("AutoSwap", SwapMode.Silent, () -> page.getValue() == Page.Interact && place.isOpen()));
     private final BooleanSetting afterBreak = add(new BooleanSetting("AfterBreak", true, () -> page.getValue() == Page.Interact && place.isOpen()));
     private final BooleanSetting breakSetting = add(new BooleanSetting("Break", true, () -> page.getValue() == Page.Interact).setParent());
-    private final SliderSetting breakDelay = add(new SliderSetting("BreakDelay", 300, 0, 1000, () -> page.getValue() == Page.Interact && breakSetting.isOpen()).setSuffix("ms"));
+    private final SliderSetting breakDelay = add(new SliderSetting("BreakDelay", 50, 0, 1000, () -> page.getValue() == Page.Interact && breakSetting.isOpen()).setSuffix("ms"));
     private final SliderSetting minAge = add(new SliderSetting("MinAge", 0, 0, 20, () -> page.getValue() == Page.Interact && breakSetting.isOpen()).setSuffix("tick"));
-    private final BooleanSetting breakRemove = add(new BooleanSetting("Remove", false, () -> page.getValue() == Page.Interact && breakSetting.isOpen()));
+    private final BooleanSetting breakRemove = add(new BooleanSetting("Remove", true, () -> page.getValue() == Page.Interact && breakSetting.isOpen()));
     private final BooleanSetting onlyTick = add(new BooleanSetting("OnlyTick", true, () -> page.getValue() == Page.Interact));
     //Render
     private final ColorSetting text = add(new ColorSetting("Text", new Color(-1), () -> page.getValue() == Page.Render).injectBoolean(true));
@@ -128,9 +128,9 @@ public class AutoCrystal extends Module {
     public final EnumSetting<Easing> ease = add(new EnumSetting<>("Ease", Easing.CubicInOut, () -> page.getValue() == Page.Render && mode.is(TargetESP.Box)));
     //Calc
     private final BooleanSetting thread = add(new BooleanSetting("Thread", true, () -> page.getValue() == Page.Calc));
-    private final BooleanSetting doCrystal = add(new BooleanSetting("ThreadInteract", false, () -> page.getValue() == Page.Calc));
+    private final BooleanSetting doCrystal = add(new BooleanSetting("ThreadInteract", true, () -> page.getValue() == Page.Calc));
     private final BooleanSetting lite = add(new BooleanSetting("LessCPU", false, () -> page.getValue() == Page.Calc));
-    private final SliderSetting predictTicks = add(new SliderSetting("Predict", 4, 0, 10, () -> page.getValue() == Page.Calc).setSuffix("ticks"));
+    private final SliderSetting predictTicks = add(new SliderSetting("Predict", 3, 0, 10, () -> page.getValue() == Page.Calc).setSuffix("ticks"));
     private final BooleanSetting terrainIgnore = add(new BooleanSetting("TerrainIgnore", true, () -> page.getValue() == Page.Calc));
     //Misc
     private final BooleanSetting ignoreMine = add(new BooleanSetting("IgnoreMine", true, () -> page.getValue() == Page.Misc).setParent());
@@ -138,11 +138,11 @@ public class AutoCrystal extends Module {
     private final BooleanSetting antiSurround = add(new BooleanSetting("AntiSurround", false, () -> page.getValue() == Page.Misc).setParent());
     private final SliderSetting antiSurroundMax = add(new SliderSetting("WhenLower", 5.0, 0.0, 36.0, () -> page.getValue() == Page.Misc && antiSurround.isOpen()).setSuffix("dmg"));
     private final BooleanSetting slowPlace = add(new BooleanSetting("Timeout", true, () -> page.getValue() == Page.Misc).setParent());
-    private final SliderSetting slowDelay = add(new SliderSetting("TimeoutDelay", 600, 0, 2000, () -> page.getValue() == Page.Misc && slowPlace.isOpen()).setSuffix("ms"));
-    private final SliderSetting slowMinDamage = add(new SliderSetting("TimeoutMin", 1.5, 0.0, 36.0, () -> page.getValue() == Page.Misc && slowPlace.isOpen()).setSuffix("dmg"));
+    private final SliderSetting slowDelay = add(new SliderSetting("TimeoutDelay", 800, 0, 2000, () -> page.getValue() == Page.Misc && slowPlace.isOpen()).setSuffix("ms"));
+    private final SliderSetting slowMinDamage = add(new SliderSetting("TimeoutMin", 1.0, 0.0, 36.0, () -> page.getValue() == Page.Misc && slowPlace.isOpen()).setSuffix("dmg"));
     private final BooleanSetting forcePlace = add(new BooleanSetting("ForcePlace", true, () -> page.getValue() == Page.Misc).setParent());
-    private final SliderSetting forceMaxHealth = add(new SliderSetting("LowerThan", 7, 0, 36, () -> page.getValue() == Page.Misc && forcePlace.isOpen()).setSuffix("health"));
-    private final SliderSetting forceMin = add(new SliderSetting("ForceMin", 1.5, 0.0, 36.0, () -> page.getValue() == Page.Misc && forcePlace.isOpen()).setSuffix("dmg"));
+    private final SliderSetting forceMaxHealth = add(new SliderSetting("LowerThan", 10, 0, 36, () -> page.getValue() == Page.Misc && forcePlace.isOpen()).setSuffix("health"));
+    private final SliderSetting forceMin = add(new SliderSetting("ForceMin", 1.0, 0.0, 36.0, () -> page.getValue() == Page.Misc && forcePlace.isOpen()).setSuffix("dmg"));
     private final BooleanSetting armorBreaker = add(new BooleanSetting("ArmorBreaker", true, () -> page.getValue() == Page.Misc).setParent());
     private final SliderSetting maxDurable = add(new SliderSetting("MaxDurable", 8, 0, 100, () -> page.getValue() == Page.Misc && armorBreaker.isOpen()).setSuffix("%"));
     private final SliderSetting armorBreakerDamage = add(new SliderSetting("BreakerMin", 3.0, 0.0, 36.0, () -> page.getValue() == Page.Misc && armorBreaker.isOpen()).setSuffix("dmg"));
