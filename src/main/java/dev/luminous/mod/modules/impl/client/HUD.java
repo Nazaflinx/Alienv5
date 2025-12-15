@@ -111,7 +111,7 @@ public class HUD extends Module {
                     int bgColor = new Color(0, 0, 0, bgAlpha.getValueInt()).getRGB();
 
                     if (rounded.getValue()) {
-                        dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), windowWidth - x - 3, y - 1, bgWidth, bgHeight, 2, bgColor);
+                        dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), windowWidth - x - 3, y - 1, bgWidth, bgHeight, 2, new Color(bgColor, true));
                     } else {
                         dev.luminous.api.utils.render.Render2DUtil.drawRect(drawContext.getMatrices(), windowWidth - x - 3, y - 1, bgWidth, bgHeight, bgColor);
                     }
@@ -214,7 +214,7 @@ public class HUD extends Module {
             int bgColor = new Color(0, 0, 0, bgAlpha.getValueInt()).getRGB();
 
             if (rounded.getValue()) {
-                dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), x - 3, y - 1, bgWidth, bgHeight, 2, bgColor);
+                dev.luminous.api.utils.render.Render2DUtil.drawRound(drawContext.getMatrices(), x - 3, y - 1, bgWidth, bgHeight, 2, new Color(bgColor, true));
             } else {
                 dev.luminous.api.utils.render.Render2DUtil.drawRect(drawContext.getMatrices(), x - 3, y - 1, bgWidth, bgHeight, bgColor);
             }
@@ -229,7 +229,7 @@ public class HUD extends Module {
             textColor = ModuleList.INSTANCE.getColor(ModuleList.INSTANCE.counter);
         } else if (pulse.booleanValue) {
             long time = System.currentTimeMillis();
-            int pulseColor = dev.luminous.api.utils.render.ColorUtil.interpolateColor(color.getValue(), pulse.getValue(), (float) (Math.sin((time / (pulseSpeed.getValue() * 100))) * 0.5 + 0.5));
+            int pulseColor = dev.luminous.api.utils.render.ColorUtil.fadeColor(color.getValue(), pulse.getValue(), (float) (Math.sin((time / (pulseSpeed.getValue() * 100))) * 0.5 + 0.5)).getRGB();
             textColor = pulseColor;
         } else {
             textColor = color.getValue().getRGB();

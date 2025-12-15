@@ -161,12 +161,12 @@ public class ModuleList extends Module {
             if (backGround.getValue()) {
                 int bgX = textX - 2;
                 int bgY = (int) modules.y;
-                int bgWidth = ((float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() + 1) - textX + 2;
+                int bgWidth = (int) (((float) mc.getWindow().getScaledWidth() - xOffset.getValueInt() + 1) - textX + 2);
                 int bgHeight = getFontHeight() + height.getValueInt();
                 int bgColorValue = bgSync.getValue() ? ColorUtil.injectAlpha(getColor(counter), (int) (bgColor.getValue().getAlpha() * modules.fade)) : ColorUtil.injectAlpha(bgColor.getValue().getRGB(), (int) (bgColor.getValue().getAlpha() * modules.fade));
 
                 if (rounded.getValue()) {
-                    Render2DUtil.drawRound(drawContext.getMatrices(), bgX, bgY, bgWidth, bgHeight, roundRadius.getValueInt(), bgColorValue);
+                    Render2DUtil.drawRound(drawContext.getMatrices(), bgX, bgY, bgWidth, bgHeight, roundRadius.getValueInt(), new Color(bgColorValue, true));
                 } else {
                     Render2DUtil.drawRect(drawContext.getMatrices(), bgX, bgY, bgWidth, bgHeight, bgColorValue);
                 }
@@ -214,9 +214,9 @@ public class ModuleList extends Module {
 
                 if (gradient.getValue()) {
                     int nextColor = counter + 1 < modulesList.size() ? getColor(counter + 1) : getColor(counter);
-                    Render2DUtil.drawGradientRect(drawContext.getMatrices(), rectX, rectY, rectWidth.getValueInt(), rectH,
-                            ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)),
-                            ColorUtil.injectAlpha(nextColor, (int) (255 * modules.fade)));
+                    Render2DUtil.drawRectVertical(drawContext.getMatrices(), rectX, rectY, rectWidth.getValueInt(), rectH,
+                            new Color(ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)), true),
+                            new Color(ColorUtil.injectAlpha(nextColor, (int) (255 * modules.fade)), true));
                 } else {
                     Render2DUtil.drawRect(drawContext.getMatrices(), rectX, rectY, rectWidth.getValueInt(), rectH,
                             ColorUtil.injectAlpha(getColor(counter), (int) (255 * modules.fade)));

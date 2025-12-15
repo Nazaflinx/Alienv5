@@ -387,7 +387,7 @@ public class AutoCrystal extends Module {
 
                     float targetHealth = EntityUtil.getHealth(pap.player);
                     if (damage < targetHealth) {
-                        float minDamageRequired = getDamage(pap.player);
+                        float minDamageRequired = (float) getDamage(pap.player);
                         if (damage < minDamageRequired) continue;
 
                         if (smartValue) {
@@ -462,7 +462,7 @@ public class AutoCrystal extends Module {
 
                     float targetHealth = EntityUtil.getHealth(pap.player);
                     if (damage < targetHealth) {
-                        float minDamageRequired = getDamage(pap.player);
+                        float minDamageRequired = (float) getDamage(pap.player);
                         if (damage < minDamageRequired) continue;
 
                         if (smartValue) {
