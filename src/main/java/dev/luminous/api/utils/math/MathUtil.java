@@ -11,11 +11,15 @@ import java.math.RoundingMode;
 
 public class MathUtil implements Wrapper {
     public static float clamp(float num, float min, float max) {
-        return num < min ? min : Math.min(num, max);
+        return Math.max(min, Math.min(max, num));
     }
+
     public static double clamp(double value, double min, double max) {
-        if (value < min) return min;
-        return Math.min(value, max);
+        return Math.max(min, Math.min(max, value));
+    }
+
+    public static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
     public static double round(double value, int places) {
         BigDecimal bd = new BigDecimal(value);

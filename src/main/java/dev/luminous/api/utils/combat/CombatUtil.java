@@ -27,8 +27,13 @@ public class CombatUtil implements Wrapper {
     public static final Timer breakTimer = new Timer();
     public static List<PlayerEntity> getEnemies(double range) {
         List<PlayerEntity> list = new ArrayList<>();
+        Vec3d playerPos = mc.player.getPos();
+        double rangeSq = range * range;
+
         for (PlayerEntity player : mc.world.getPlayers()) {
-            if (!isValid(player, range)) continue;
+            if (player == mc.player || !player.isAlive()) continue;
+            if (Alien.FRIEND.isFriend(player)) continue;
+            if (playerPos.squaredDistanceTo(player.getPos()) > rangeSq) continue;
             list.add(player);
         }
         return list;
@@ -64,23 +69,27 @@ public class CombatUtil implements Wrapper {
         }
     }
     public static boolean isValid(Entity entity, double range) {
-        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && Alien.FRIEND.isFriend(player) || mc.player.getPos().distanceTo(entity.getPos()) > range;
-
-        return !invalid;
+        if (entity == null || !entity.isAlive() || entity.equals(mc.player)) {
+            return false;
+        }
+        if (entity instanceof PlayerEntity player && Alien.FRIEND.isFriend(player)) {
+            return false;
+        }
+        double rangeSq = range * range;
+        return mc.player.getPos().squaredDistanceTo(entity.getPos()) <= rangeSq;
     }
 
     public static PlayerEntity getClosestEnemy(double distance) {
         PlayerEntity closest = null;
+        double closestDistSq = Double.MAX_VALUE;
+        Vec3d playerPos = mc.player.getPos();
 
         for (PlayerEntity player : getEnemies(distance)) {
-            if (closest == null) {
+            double distSq = playerPos.squaredDistanceTo(player.getPos());
+            if (distSq < closestDistSq) {
                 closest = player;
-                continue;
+                closestDistSq = distSq;
             }
-
-            if (!(mc.player.squaredDistanceTo(player.getPos()) < mc.player.squaredDistanceTo(closest))) continue;
-
-            closest = player;
         }
         return closest;
     }

@@ -34,27 +34,48 @@ public class ESP extends Module {
     @Override
 	public void onRender3D(MatrixStack matrixStack) {
 		if (item.booleanValue || player.booleanValue) {
+			float tickDelta = mc.getTickDelta();
 			for (Entity entity : mc.world.getEntities()) {
 				if (entity instanceof ItemEntity && item.booleanValue) {
-					Color color = this.item.getValue();
-					Render3DUtil.draw3DBox(matrixStack, ((IEntity) entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), mc.getTickDelta()), MathUtil.interpolate(entity.lastRenderY, entity.getY(), mc.getTickDelta()), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), mc.getTickDelta()))), color, false, true);
-				} else if (entity instanceof PlayerEntity && player.booleanValue) {
-					Color color = this.player.getValue();
-					Render3DUtil.draw3DBox(matrixStack, ((IEntity) entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), mc.getTickDelta()), MathUtil.interpolate(entity.lastRenderY, entity.getY(), mc.getTickDelta()), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), mc.getTickDelta()))).expand(0, 0.1, 0), color, false, true);
+					Vec3d interpolatedPos = new Vec3d(
+						MathUtil.interpolate(entity.lastRenderX, entity.getX(), tickDelta),
+						MathUtil.interpolate(entity.lastRenderY, entity.getY(), tickDelta),
+						MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), tickDelta)
+					);
+					Box entityBox = ((IEntity) entity).getDimensions().getBoxAt(interpolatedPos);
+					Render3DUtil.draw3DBox(matrixStack, entityBox, item.getValue(), false, true);
+				} else if (entity instanceof PlayerEntity && entity != mc.player && player.booleanValue) {
+					Vec3d interpolatedPos = new Vec3d(
+						MathUtil.interpolate(entity.lastRenderX, entity.getX(), tickDelta),
+						MathUtil.interpolate(entity.lastRenderY, entity.getY(), tickDelta),
+						MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), tickDelta)
+					);
+					Box entityBox = ((IEntity) entity).getDimensions().getBoxAt(interpolatedPos).expand(0, 0.1, 0);
+					Render3DUtil.draw3DBox(matrixStack, entityBox, player.getValue(), false, true);
 				}
 			}
 		}
-		ArrayList<BlockEntity> blockEntities = BlockUtil.getTileEntities();
-		for (BlockEntity blockEntity : blockEntities) {
-			if (blockEntity instanceof ChestBlockEntity && chest.booleanValue) {
-				Box box = new Box(blockEntity.getPos());
-				Render3DUtil.draw3DBox(matrixStack, box, chest.getValue());
-			} else if (blockEntity instanceof EnderChestBlockEntity && enderChest.booleanValue) {
-				Box box = new Box(blockEntity.getPos());
-				Render3DUtil.draw3DBox(matrixStack, box, enderChest.getValue());
-			} else if (blockEntity instanceof ShulkerBoxBlockEntity && shulkerBox.booleanValue) {
-				Box box = new Box(blockEntity.getPos());
-				Render3DUtil.draw3DBox(matrixStack, box, shulkerBox.getValue());
+
+		if (chest.booleanValue || enderChest.booleanValue || shulkerBox.booleanValue) {
+			ArrayList<BlockEntity> blockEntities = BlockUtil.getTileEntities();
+			for (BlockEntity blockEntity : blockEntities) {
+				Box box = null;
+				Color color = null;
+
+				if (blockEntity instanceof ChestBlockEntity && chest.booleanValue) {
+					box = new Box(blockEntity.getPos());
+					color = chest.getValue();
+				} else if (blockEntity instanceof EnderChestBlockEntity && enderChest.booleanValue) {
+					box = new Box(blockEntity.getPos());
+					color = enderChest.getValue();
+				} else if (blockEntity instanceof ShulkerBoxBlockEntity && shulkerBox.booleanValue) {
+					box = new Box(blockEntity.getPos());
+					color = shulkerBox.getValue();
+				}
+
+				if (box != null && color != null) {
+					Render3DUtil.draw3DBox(matrixStack, box, color);
+				}
 			}
 		}
 	}

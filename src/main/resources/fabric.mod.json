@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "alien",
+  "id": "lunaclient",
   "version": "${version}",
-  "name": "Alien",
-  "description": "Alien client",
+  "name": "Luna Client",
+  "description": "Advanced Minecraft utility client for educational purposes",
   "authors": [
     "ItzLuminous",
     "NotXiguaJerry"

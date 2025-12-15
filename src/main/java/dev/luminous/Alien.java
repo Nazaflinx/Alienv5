@@ -15,8 +15,8 @@ public final class Alien implements ModInitializer {
         load();
     }
 
-    public static final String NAME = "Alien";
-    public static final String VERSION = "1.3.7";
+    public static final String NAME = "Luna Client";
+    public static final String VERSION = "2.0.0";
     public static String PREFIX = ";";
     public static final EventBus EVENT_BUS = new EventBus();
     public static ExecutorService EXECUTOR = Executors.newCachedThreadPool();

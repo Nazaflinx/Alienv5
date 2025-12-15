@@ -2,13 +2,14 @@ package dev.luminous.api.utils.math;
 
 public class Timer {
 
+    private long time;
+
     public Timer() {
         reset();
     }
-    private long time = -1L;
 
     public Timer reset() {
-        time = System.nanoTime();
+        this.time = System.nanoTime();
         return this;
     }
 
