@@ -293,91 +293,118 @@ public class AutoAnchor extends Module {
 	}
 	private void calc() {
 		if (nullCheck()) return;
-		if (calcTimer.passed((long) (updateDelay.getValueFloat()))) {
-			PlayerAndPredict selfPredict = new PlayerAndPredict(mc.player);
-			calcTimer.reset();
-			tempPos = null;
-			double placeDamage = minDamage.getValue();
-			double breakDamage = breakMin.getValue();
-			boolean anchorFound = false;
-			java.util.List<PlayerEntity> enemies = CombatUtil.getEnemies(targetRange.getValue());
-			ArrayList<PlayerAndPredict> list = new ArrayList<>();
-			for (PlayerEntity player : enemies) {
-				list.add(new PlayerAndPredict(player));
+		if (!calcTimer.passed((long) (updateDelay.getValueFloat()))) return;
+
+		PlayerAndPredict selfPredict = new PlayerAndPredict(mc.player);
+		calcTimer.reset();
+		tempPos = null;
+		double placeDamage = minDamage.getValue();
+		double breakDamage = breakMin.getValue();
+		boolean anchorFound = false;
+
+		ArrayList<PlayerAndPredict> list = new ArrayList<>();
+		double targetRangeSq = targetRange.getValue() * targetRange.getValue();
+		Vec3d playerPos = mc.player.getPos();
+
+		for (PlayerEntity player : mc.world.getPlayers()) {
+			if (player == mc.player || !player.isAlive()) continue;
+			if (Alien.FRIEND.isFriend(player)) continue;
+			if (playerPos.squaredDistanceTo(player.getPos()) > targetRangeSq) continue;
+			list.add(new PlayerAndPredict(player));
+		}
+
+		if (list.isEmpty()) {
+			currentPos = null;
+			return;
+		}
+		double maxSelfDamageValue = maxSelfDamage.getValue();
+		double playerHealth = mc.player.getHealth() + mc.player.getAbsorptionAmount();
+		boolean noSuicideValue = noSuicide.getValue();
+		double headDamageValue = headDamage.getValueFloat();
+		double rangeValue = range.getValue();
+
+		for (PlayerAndPredict pap : list) {
+			BlockPos pos = EntityUtil.getEntityPos(pap.player, true).up(2);
+			if (!canPlace(pos, rangeValue, breakCrystal.getValue()) && !(getBlock(pos) == Blocks.RESPAWN_ANCHOR && BlockUtil.getClickSideStrict(pos) != null)) {
+				continue;
 			}
-			for (PlayerAndPredict pap : list) {
-				BlockPos pos = EntityUtil.getEntityPos(pap.player, true).up(2);
-				if (canPlace(pos, range.getValue(), breakCrystal.getValue()) || getBlock(pos) == Blocks.RESPAWN_ANCHOR && BlockUtil.getClickSideStrict(pos) != null) {
-					double selfDamage;
-					if ((selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict)) > maxSelfDamage.getValue() || noSuicide.getValue() && selfDamage > mc.player.getHealth() + mc.player.getAbsorptionAmount()) {
-						continue;
+
+			double selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict);
+			if (selfDamage > maxSelfDamageValue) continue;
+			if (noSuicideValue && selfDamage > playerHealth) continue;
+
+			double damage = getAnchorDamage(pos, pap.player, pap.predict);
+			if (damage > headDamageValue) {
+				lastDamage = damage;
+				displayTarget = pap.player;
+				tempPos = pos;
+				break;
+			}
+		}
+		if (tempPos == null) {
+			boolean lightMode = light.getValue();
+			boolean breakCrystalValue = breakCrystal.getValue();
+			double minPreferValue = minPrefer.getValue();
+			boolean autoCrystalActive = AutoCrystal.crystalPos != null && AutoCrystal.INSTANCE.isOn();
+
+			for (BlockPos pos : getSphere((float) rangeValue)) {
+				boolean isAnchor = getBlock(pos) == Blocks.RESPAWN_ANCHOR;
+
+				for (PlayerAndPredict pap : list) {
+					if (lightMode) {
+						CombatUtil.modifyPos = pos;
+						CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
+						boolean skip = !canSee(pos.toCenterPos(), pap.predict.getPos());
+						CombatUtil.modifyPos = null;
+						if (skip) continue;
 					}
-					double damage;
-					if ((damage = getAnchorDamage(pos, pap.player, pap.predict)) > headDamage.getValueFloat()) {
-						lastDamage = damage;
-						displayTarget = pap.player;
-						tempPos = pos;
-						break;
+
+					if (!isAnchor) {
+						if (anchorFound) continue;
+						if (!canPlace(pos, rangeValue, breakCrystalValue)) continue;
+
+						CombatUtil.modifyPos = pos;
+						CombatUtil.modifyBlockState = Blocks.OBSIDIAN.getDefaultState();
+						boolean skip = BlockUtil.getClickSideStrict(pos) == null;
+						CombatUtil.modifyPos = null;
+						if (skip) continue;
+
+						double damage = getAnchorDamage(pos, pap.player, pap.predict);
+						if (damage < placeDamage) continue;
+
+						if (!autoCrystalActive || AutoCrystal.INSTANCE.lastDamage < damage) {
+							double selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict);
+							if (selfDamage > maxSelfDamageValue) continue;
+							if (noSuicideValue && selfDamage > playerHealth) continue;
+
+							lastDamage = damage;
+							displayTarget = pap.player;
+							placeDamage = damage;
+							tempPos = pos;
+						}
+					} else {
+						if (getClickSideStrict(pos) == null) continue;
+
+						double damage = getAnchorDamage(pos, pap.player, pap.predict);
+						if (damage < breakDamage) continue;
+
+						if (damage >= minPreferValue) anchorFound = true;
+						if (!anchorFound && damage < placeDamage) continue;
+
+						if (!autoCrystalActive || AutoCrystal.INSTANCE.lastDamage < damage) {
+							double selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict);
+							if (selfDamage > maxSelfDamageValue) continue;
+							if (noSuicideValue && selfDamage > playerHealth) continue;
+
+							lastDamage = damage;
+							displayTarget = pap.player;
+							breakDamage = damage;
+							tempPos = pos;
+						}
 					}
 				}
 			}
-			if (tempPos == null) {
-				for (BlockPos pos : getSphere(range.getValueFloat())) {
-					for (PlayerAndPredict pap : list) {
-						if (light.getValue()) {
-							CombatUtil.modifyPos = pos;
-							CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
-							boolean skip = !canSee(pos.toCenterPos(), pap.predict.getPos());
-							CombatUtil.modifyPos = null;
-							if (skip) continue;
-						}
-
-						if (getBlock(pos) != Blocks.RESPAWN_ANCHOR) {
-							if (anchorFound) continue;
-							if (!canPlace(pos, range.getValue(), breakCrystal.getValue())) continue;
-
-							CombatUtil.modifyPos = pos;
-							CombatUtil.modifyBlockState = Blocks.OBSIDIAN.getDefaultState();
-							boolean skip = BlockUtil.getClickSideStrict(pos) == null;
-							CombatUtil.modifyPos = null;
-							if (skip) continue;
-
-							double damage = getAnchorDamage(pos, pap.player, pap.predict);
-							if (damage >= placeDamage) {
-								if (AutoCrystal.crystalPos == null || AutoCrystal.INSTANCE.isOff() || AutoCrystal.INSTANCE.lastDamage < damage) {
-									double selfDamage;
-									if ((selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict)) > maxSelfDamage.getValue() || noSuicide.getValue() && selfDamage > mc.player.getHealth() + mc.player.getAbsorptionAmount()) {
-										continue;
-									}
-									lastDamage = damage;
-									displayTarget = pap.player;
-									placeDamage = damage;
-									tempPos = pos;
-								}
-							}
-						} else {
-							double damage = getAnchorDamage(pos, pap.player, pap.predict);
-							if (getClickSideStrict(pos) == null) continue;
-							if (damage >= breakDamage) {
-								if (damage >= minPrefer.getValue()) anchorFound = true;
-								if (!anchorFound && damage < placeDamage) {
-									continue;
-								}
-								if (AutoCrystal.crystalPos == null || AutoCrystal.INSTANCE.isOff() || AutoCrystal.INSTANCE.lastDamage < damage) {
-									double selfDamage;
-									if ((selfDamage = getAnchorDamage(pos, selfPredict.player, selfPredict.predict)) > maxSelfDamage.getValue() || noSuicide.getValue() && selfDamage > mc.player.getHealth() + mc.player.getAbsorptionAmount()) {
-										continue;
-									}
-									lastDamage = damage;
-									displayTarget = pap.player;
-									breakDamage = damage;
-									tempPos = pos;
-								}
-							}
-						}
-					}
-				}
-			}
+		}
 		}
 		currentPos = tempPos;
 	}

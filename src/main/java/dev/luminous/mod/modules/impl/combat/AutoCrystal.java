@@ -296,8 +296,15 @@ public class AutoCrystal extends Module {
         breakDamage = 0;
         tempPos = null;
         tempDamage = 0f;
+
         ArrayList<PlayerAndPredict> list = new ArrayList<>();
-        for (PlayerEntity target : CombatUtil.getEnemies(targetRange.getValueFloat())) {
+        double targetRangeSq = targetRange.getValueFloat() * targetRange.getValueFloat();
+        Vec3d playerPos = mc.player.getPos();
+
+        for (PlayerEntity target : mc.world.getPlayers()) {
+            if (target == mc.player || !target.isAlive()) continue;
+            if (Alien.FRIEND.isFriend(target)) continue;
+            if (playerPos.squaredDistanceTo(target.getPos()) > targetRangeSq) continue;
             if (target.hurtTime <= hurtTime.getValueInt()) {
                 list.add(new PlayerAndPredict(target));
             }
@@ -306,77 +313,102 @@ public class AutoCrystal extends Module {
         if (list.isEmpty()) {
             lastBreakTimer.reset();
         } else {
-            for (BlockPos pos : BlockUtil.getSphere((float) range.getValue() + 1)) {
+            Vec3d eyePos = mc.player.getEyePos();
+            double rangeValue = range.getValue();
+            double rangeSq = rangeValue * rangeValue;
+            double maxSelfValue = maxSelf.getValue();
+            double noSuicideValue = noSuicide.getValue();
+            double playerHealth = mc.player.getHealth() + mc.player.getAbsorptionAmount();
+            boolean smartValue = smart.getValue();
+
+            for (BlockPos pos : BlockUtil.getSphere((float) rangeValue + 1)) {
                 if (behindWall(pos)) continue;
-                if (mc.player.getEyePos().distanceTo(pos.toCenterPos().add(0, -0.5, 0)) > range.getValue()) {
-                    continue;
-                }
+                Vec3d crystalPos = pos.toCenterPos().add(0, -0.5, 0);
+                if (eyePos.squaredDistanceTo(crystalPos) > rangeSq) continue;
                 if (!canTouch(pos.down())) continue;
                 if (!canPlaceCrystal(pos, true, false)) continue;
+
+                float bestDamage = 0;
+                PlayerAndPredict bestTarget = null;
+
                 for (PlayerAndPredict pap : list) {
-                    if (lite.getValue() && liteCheck(pos.toCenterPos().add(0, -0.5, 0), pap.predict.getPos())) {
-                        continue;
-                    }
+                    if (lite.getValue() && liteCheck(crystalPos, pap.predict.getPos())) continue;
+
                     float damage = calculateDamage(pos, pap.player, pap.predict);
-                    if (tempPos == null || damage > tempDamage) {
-                        float selfDamage = calculateDamage(pos, self.player, self.predict);
-                        if (selfDamage > maxSelf.getValue()) continue;
-                        if (noSuicide.getValue() > 0 && selfDamage > mc.player.getHealth() + mc.player.getAbsorptionAmount() - noSuicide.getValue())
-                            continue;
-                        if (damage < EntityUtil.getHealth(pap.player)) {
-                            if (damage < getDamage(pap.player)) continue;
-                            if (smart.getValue()) {
-                                if (getDamage(pap.player) == forceMin.getValue()) {
-                                    if (damage < selfDamage - 2.5) {
-                                        continue;
-                                    }
-                                } else {
-                                    if (damage < selfDamage) {
-                                        continue;
-                                    }
-                                }
+                    if (damage <= bestDamage) continue;
+
+                    float selfDamage = calculateDamage(pos, self.player, self.predict);
+                    if (selfDamage > maxSelfValue) continue;
+                    if (noSuicideValue > 0 && selfDamage > playerHealth - noSuicideValue) continue;
+
+                    float targetHealth = EntityUtil.getHealth(pap.player);
+                    if (damage < targetHealth) {
+                        float minDamageRequired = getDamage(pap.player);
+                        if (damage < minDamageRequired) continue;
+
+                        if (smartValue) {
+                            if (minDamageRequired == forceMin.getValue()) {
+                                if (damage < selfDamage - 2.5) continue;
+                            } else {
+                                if (damage < selfDamage) continue;
                             }
                         }
-                        displayTarget = pap.player;
-                        tempPos = pos;
-                        tempDamage = damage;
                     }
+
+                    bestDamage = damage;
+                    bestTarget = pap;
+                }
+
+                if (bestTarget != null && (tempPos == null || bestDamage > tempDamage)) {
+                    displayTarget = bestTarget.player;
+                    tempPos = pos;
+                    tempDamage = bestDamage;
                 }
             }
+            double wallRangeValue = wallRange.getValue();
             for (Entity entity : mc.world.getEntities()) {
-                if (entity instanceof EndCrystalEntity crystal) {
-                    if (!mc.player.canSee(crystal) && mc.player.getEyePos().distanceTo(crystal.getPos()) > wallRange.getValue())
-                        continue;
-                    if (mc.player.getEyePos().distanceTo(crystal.getPos()) > range.getValue()) {
-                        continue;
-                    }
-                    for (PlayerAndPredict pap : list) {
-                        float damage = calculateDamage(crystal.getPos(), pap.player, pap.predict);
-                        if (breakPos == null || damage > breakDamage) {
-                            float selfDamage = calculateDamage(crystal.getPos(), self.player, self.predict);
-                            if (selfDamage > maxSelf.getValue()) continue;
-                            if (noSuicide.getValue() > 0 && selfDamage > mc.player.getHealth() + mc.player.getAbsorptionAmount() - noSuicide.getValue())
-                                continue;
-                            if (damage < EntityUtil.getHealth(pap.player)) {
-                                if (damage < getDamage(pap.player)) continue;
-                                if (smart.getValue()) {
-                                    if (getDamage(pap.player) == forceMin.getValue()) {
-                                        if (damage < selfDamage - 2.5) {
-                                            continue;
-                                        }
-                                    } else {
-                                        if (damage < selfDamage) {
-                                            continue;
-                                        }
-                                    }
-                                }
-                            }
-                            breakPos = new BlockPosX(crystal.getPos());
-                            if (damage > tempDamage) {
-                                displayTarget = pap.player;
-                                //tempDamage = damage;
+                if (!(entity instanceof EndCrystalEntity crystal)) continue;
+
+                Vec3d crystalPos = crystal.getPos();
+                double distSq = eyePos.squaredDistanceTo(crystalPos);
+
+                if (!mc.player.canSee(crystal) && distSq > wallRangeValue * wallRangeValue) continue;
+                if (distSq > rangeSq) continue;
+
+                float maxBreakDamage = 0;
+                PlayerAndPredict bestBreakTarget = null;
+
+                for (PlayerAndPredict pap : list) {
+                    float damage = calculateDamage(crystalPos, pap.player, pap.predict);
+                    if (damage <= maxBreakDamage && breakPos != null) continue;
+
+                    float selfDamage = calculateDamage(crystalPos, self.player, self.predict);
+                    if (selfDamage > maxSelfValue) continue;
+                    if (noSuicideValue > 0 && selfDamage > playerHealth - noSuicideValue) continue;
+
+                    float targetHealth = EntityUtil.getHealth(pap.player);
+                    if (damage < targetHealth) {
+                        float minDamageRequired = getDamage(pap.player);
+                        if (damage < minDamageRequired) continue;
+
+                        if (smartValue) {
+                            if (minDamageRequired == forceMin.getValue()) {
+                                if (damage < selfDamage - 2.5) continue;
+                            } else {
+                                if (damage < selfDamage) continue;
                             }
                         }
+                    }
+
+                    maxBreakDamage = damage;
+                    bestBreakTarget = pap;
+                }
+
+                if (bestBreakTarget != null) {
+                    breakPos = new BlockPosX(crystalPos);
+                    breakDamage = maxBreakDamage;
+                    if (maxBreakDamage > tempDamage) {
+                        displayTarget = bestBreakTarget.player;
                     }
                 }
             }
