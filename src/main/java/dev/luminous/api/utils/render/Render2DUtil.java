@@ -134,4 +134,77 @@ public class Render2DUtil implements Wrapper {
     public static void endRender() {
         RenderSystem.disableBlend();
     }
+
+    public static void drawLine(MatrixStack matrices, float x1, float y1, float x2, float y2, float width, Color color) {
+        if (color.getAlpha() <= 5) return;
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder bufferBuilder = Tessellator.getInstance().getBuffer();
+
+        setupRender();
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.lineWidth(width);
+
+        bufferBuilder.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
+        bufferBuilder.vertex(matrix, x1, y1, 0.0F).color(color.getRGB()).next();
+        bufferBuilder.vertex(matrix, x2, y2, 0.0F).color(color.getRGB()).next();
+        BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
+
+        endRender();
+        RenderSystem.lineWidth(1.0f);
+    }
+
+    public static void drawRoundOutline(MatrixStack matrices, float x, float y, float width, float height, float radius, float lineWidth, Color color) {
+        if (color.getAlpha() <= 5) return;
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder bufferBuilder = Tessellator.getInstance().getBuffer();
+
+        setupRender();
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.lineWidth(lineWidth);
+
+        bufferBuilder.begin(VertexFormat.DrawMode.DEBUG_LINE_STRIP, VertexFormats.POSITION_COLOR);
+
+        float x2 = x + width;
+        float y2 = y + height;
+        int segments = 10;
+
+        for (int i = 0; i <= segments; i++) {
+            double angle = (Math.PI / 2) * ((double) i / segments);
+            float px = (float) (x2 - radius + Math.cos(angle) * radius);
+            float py = (float) (y + radius - Math.sin(angle) * radius);
+            bufferBuilder.vertex(matrix, px, py, 0.0F).color(color.getRGB()).next();
+        }
+
+        for (int i = 0; i <= segments; i++) {
+            double angle = (Math.PI / 2) * ((double) i / segments);
+            float px = (float) (x2 - radius + Math.sin(angle) * radius);
+            float py = (float) (y2 - radius + Math.cos(angle) * radius);
+            bufferBuilder.vertex(matrix, px, py, 0.0F).color(color.getRGB()).next();
+        }
+
+        for (int i = 0; i <= segments; i++) {
+            double angle = (Math.PI / 2) * ((double) i / segments);
+            float px = (float) (x + radius - Math.cos(angle) * radius);
+            float py = (float) (y2 - radius + Math.sin(angle) * radius);
+            bufferBuilder.vertex(matrix, px, py, 0.0F).color(color.getRGB()).next();
+        }
+
+        for (int i = 0; i <= segments; i++) {
+            double angle = (Math.PI / 2) * ((double) i / segments);
+            float px = (float) (x + radius - Math.sin(angle) * radius);
+            float py = (float) (y + radius - Math.cos(angle) * radius);
+            bufferBuilder.vertex(matrix, px, py, 0.0F).color(color.getRGB()).next();
+        }
+
+        float px = (float) (x2 - radius + radius);
+        float py = y + radius;
+        bufferBuilder.vertex(matrix, px, py, 0.0F).color(color.getRGB()).next();
+
+        BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
+
+        endRender();
+        RenderSystem.lineWidth(1.0f);
+    }
 }

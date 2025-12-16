@@ -2,6 +2,7 @@ package dev.luminous.mod.gui.clickgui;
 
 import dev.luminous.Alien;
 import dev.luminous.mod.gui.clickgui.tabs.Tab;
+import dev.luminous.mod.gui.notification.NotificationManager;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import dev.luminous.mod.modules.settings.impl.StringSetting;
 import dev.luminous.api.utils.Wrapper;
@@ -10,6 +11,9 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 public class ClickGuiScreen extends Screen implements Wrapper {
+
+    public static final SearchBar searchBar = new SearchBar(10, 10);
+    public static final Tooltip tooltip = new Tooltip();
 
     public ClickGuiScreen() {
         super(Text.of("ClickGui"));
@@ -27,10 +31,16 @@ public class ClickGuiScreen extends Screen implements Wrapper {
     public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.render(drawContext, mouseX, mouseY, partialTicks);
         Alien.GUI.draw(mouseX, mouseY, drawContext, partialTicks);
+        searchBar.draw(drawContext, mouseX, mouseY);
+        tooltip.draw(drawContext);
+        NotificationManager.getInstance().draw(drawContext);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (searchBar.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
         Alien.MODULE.modules.forEach(module -> module.getSettings().stream()
                 .filter(setting -> setting instanceof StringSetting)
                 .map(setting -> (StringSetting) setting)
@@ -45,10 +55,20 @@ public class ClickGuiScreen extends Screen implements Wrapper {
     }
 
     @Override
+    public boolean charTyped(char chr, int modifiers) {
+        if (searchBar.charTyped(chr, modifiers)) {
+            return true;
+        }
+        return super.charTyped(chr, modifiers);
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
             hoverClicked = false;
             clicked = true;
+            NotificationManager.getInstance().handleClick(mouseX, mouseY);
+            searchBar.update(mouseX, mouseY);
         } else if (button == 1) {
             rightClicked = true;
         }
@@ -72,6 +92,8 @@ public class ClickGuiScreen extends Screen implements Wrapper {
         rightClicked = false;
         hoverClicked = false;
         clicked = false;
+        searchBar.setFocused(false);
+        tooltip.endHover();
     }
 
     @Override

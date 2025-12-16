@@ -23,6 +23,7 @@ public class ClickGuiTab extends Tab {
 	protected final boolean drawBorder = true;
 	private Module.Category category = null;
 	protected final ArrayList<ModuleComponent> children = new ArrayList<>();
+	private String searchFilter = "";
 
 	public ClickGuiTab(String title, int x, int y) {
 		this.title = title;
@@ -30,6 +31,10 @@ public class ClickGuiTab extends Tab {
 		this.y = Alien.CONFIG.getInt(title + "_y", y);
 		this.width = 98;
 		this.mc = MinecraftClient.getInstance();
+	}
+
+	public void setSearchFilter(String filter) {
+		this.searchFilter = filter.toLowerCase();
 	}
 
 	public ClickGuiTab(Module.Category category, int x, int y) {
@@ -98,13 +103,17 @@ public class ClickGuiTab extends Tab {
 		if (popped) {
 			int tempHeight = 1;
 			for (ModuleComponent child : children) {
-				tempHeight += (child.getHeight());
+				if (child.matchesSearch(searchFilter)) {
+					tempHeight += (child.getHeight());
+				}
 			}
 			this.height = tempHeight;
 			int i = defaultHeight;
 			for (ModuleComponent child : this.children) {
-				child.update(i, mouseX, mouseY);
-				i += child.getHeight();
+				if (child.matchesSearch(searchFilter)) {
+					child.update(i, mouseX, mouseY);
+					i += child.getHeight();
+				}
 			}
 		}
 	}
@@ -135,7 +144,9 @@ public class ClickGuiTab extends Tab {
 	public void draw(DrawContext drawContext, float partialTicks, Color color) {
 		int tempHeight = 1;
 		for (ModuleComponent child : children) {
-			tempHeight += (child.getHeight());
+			if (child.matchesSearch(searchFilter)) {
+				tempHeight += (child.getHeight());
+			}
 		}
 		this.height = tempHeight;
 
@@ -147,17 +158,17 @@ public class ClickGuiTab extends Tab {
 			} else {
 				Render2DUtil.drawRect(matrixStack, x, y - 1, width, 15, ClickGui.INSTANCE.bar.getValue());
 			}
-/*			Render2DUtil.drawRect(matrixStack, x, y - 1 + 15, width, 1, new Color(38, 38, 38));*/
 			if (popped) Render2DUtil.drawRect(matrixStack, x, y + 14, width, (int) currentHeight, ClickGui.INSTANCE.background.getValue());
 		}
 		if (popped) {
 			int i = defaultHeight;
 			for (Component child : children) {
-				child.draw(i, drawContext, partialTicks, color, false);
-				i += child.getHeight();
+				if (child.matchesSearch(searchFilter)) {
+					child.draw(i, drawContext, partialTicks, color, false);
+					i += child.getHeight();
+				}
 			}
 		}
-		//TextUtil.drawString(drawContext, this.title, x + width / 2d - TextUtil.getWidth(title) / 2, y + 3, new Color(255, 255, 255));
 		TextUtil.drawString(drawContext, this.title, x + 4, y + 3, new Color(255, 255, 255));
 	}
 }

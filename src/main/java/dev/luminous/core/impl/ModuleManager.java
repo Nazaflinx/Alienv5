@@ -120,6 +120,7 @@ public class ModuleManager implements Wrapper {
         addModule(new Tips());
         addModule(new ClientSetting());
         addModule(new HUD());
+        addModule(new Statistics());
         addModule(new RocketExtend());
         addModule(new AutoHoleFill());
         addModule(new HoleSnap());

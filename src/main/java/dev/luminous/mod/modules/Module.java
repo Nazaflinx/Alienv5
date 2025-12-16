@@ -60,6 +60,14 @@ public abstract class Module extends Mod {
 		this.chinese = chinese;
 	}
 
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
 	public String getDisplayName() {
 		if (ClickGui.INSTANCE.chinese.getValue() && chinese != null) {
 			return chinese;
@@ -98,6 +106,10 @@ public abstract class Module extends Mod {
 			disable();
 		} else {
 			enable();
+		}
+		if (dev.luminous.mod.modules.impl.client.Statistics.INSTANCE != null &&
+			dev.luminous.mod.modules.impl.client.Statistics.INSTANCE.isOn()) {
+			dev.luminous.mod.modules.impl.client.Statistics.INSTANCE.recordModuleToggle(getName());
 		}
 	}
 

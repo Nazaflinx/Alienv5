@@ -33,6 +33,12 @@ public class ModuleComponent extends Component {
 	public List<Component> getSettingsList() {
 		return settingsList;
 	}
+
+	public boolean matchesSearch(String search) {
+		if (search == null || search.isEmpty()) return true;
+		return module.getName().toLowerCase().contains(search) ||
+		       (module.getChinese() != null && module.getChinese().contains(search));
+	}
 	public ModuleComponent(ClickGuiTab parent, Module module) {
 		super();
 		this.parent = parent;
@@ -65,8 +71,8 @@ public class ModuleComponent extends Component {
 
 	boolean hovered = false;
 
-	
-	
+
+
 	public void update(int offset, double mouseX, double mouseY) {
 		int parentX = parent.getX();
 		int parentY = parent.getY();
@@ -81,6 +87,22 @@ public class ModuleComponent extends Component {
 		}
 
 		hovered = ((mouseX >= parentX && mouseX <= (parentX + parentWidth)) && (mouseY >= parentY + offset && mouseY <= (parentY + offset + defaultHeight - 1)));
+
+		if (hovered) {
+			String desc = module.getDescription();
+			if (desc != null && !desc.isEmpty()) {
+				dev.luminous.mod.gui.clickgui.ClickGuiScreen.tooltip.setContent(
+					module.getDisplayName(),
+					desc
+				);
+				dev.luminous.mod.gui.clickgui.ClickGuiScreen.tooltip.startHover(
+					(int) mouseX, (int) mouseY
+				);
+			}
+		} else {
+			dev.luminous.mod.gui.clickgui.ClickGuiScreen.tooltip.endHover();
+		}
+
 		if (hovered && GuiManager.currentGrabbed == null) {
 			if (ClickGuiScreen.clicked) {
 				ClickGuiScreen.clicked = false;

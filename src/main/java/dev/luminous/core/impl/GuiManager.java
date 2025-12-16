@@ -54,8 +54,10 @@ public class GuiManager implements Wrapper {
 	
 	public void onUpdate() {
 		if (isClickGuiOpen()) {
+			String searchText = dev.luminous.mod.gui.clickgui.ClickGuiScreen.searchBar.getSearchText();
 			for (ClickGuiTab tab : tabs) {
 				tab.update(mouseX, mouseY);
+				tab.setSearchFilter(searchText);
 			}
 			armorHud.update(mouseX, mouseY);
 		}
