@@ -173,7 +173,6 @@ public class ModuleManager implements Wrapper {
         addModule(new XCarry());
         addModule(new Zoom());
         addModule(new Reach());
-        addModule(new DiscordRPC());
         addModule(new Notifications());
         addModule(new Aura());
         addModule(new FeetPlace());
