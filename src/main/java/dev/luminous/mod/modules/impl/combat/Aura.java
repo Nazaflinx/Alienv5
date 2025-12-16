@@ -233,9 +233,14 @@ public class Aura extends Module {
         float bestDamage = 0;
 
         for (int i = 0; i < 9; i++) {
-            if (!isWeapon(mc.player.getInventory().getStack(i))) continue;
+            net.minecraft.item.ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!isWeapon(stack)) continue;
 
-            float damage = CombatUtil.getAttackDamage(mc.player.getInventory().getStack(i));
+            float damage = (float) stack.getItem().getAttributeModifiers(net.minecraft.entity.EquipmentSlot.MAINHAND)
+                .get(net.minecraft.entity.attribute.EntityAttributes.GENERIC_ATTACK_DAMAGE)
+                .stream()
+                .mapToDouble(net.minecraft.entity.attribute.EntityAttributeModifier::getValue)
+                .sum();
             if (damage > bestDamage) {
                 bestDamage = damage;
                 bestSlot = i;

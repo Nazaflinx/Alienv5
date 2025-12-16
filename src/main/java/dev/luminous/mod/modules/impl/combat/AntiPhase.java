@@ -273,7 +273,7 @@ public class AntiPhase extends Module {
 
             Vec3d start = mc.player.getEyePos();
             Vec3d end = pearl.getPos();
-            Render3DUtil.drawLine(event.getMatrixStack(), start.x, start.y, start.z,
+            Render3DUtil.drawLine(start.x, start.y, start.z,
                 end.x, end.y, end.z, lineColor.getValue(), lineWidth.getValueFloat());
         }
     }

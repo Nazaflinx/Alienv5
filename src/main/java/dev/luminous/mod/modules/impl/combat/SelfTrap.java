@@ -283,9 +283,8 @@ public class SelfTrap extends Module {
             }
 
             if (breakCrystal.getValue()) {
-                if (!CombatUtil.attackCrystal(pos, rotate.getValue(), eatPause.getValue())) {
-                    if (BlockUtil.hasEntity(pos, false)) return;
-                }
+                CombatUtil.attackCrystal(pos, rotate.getValue(), eatPause.getValue());
+                if (BlockUtil.hasEntity(pos, false)) return;
             } else if (BlockUtil.hasEntity(pos, false)) return;
 
             int old = mc.player.getInventory().selectedSlot;

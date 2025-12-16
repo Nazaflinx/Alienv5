@@ -50,7 +50,7 @@ public class Notifications extends Module {
     }
 
     public long getDuration() {
-        return duration.getValueLong();
+        return (long) duration.getValue();
     }
 
     public enum AnimationMode {
