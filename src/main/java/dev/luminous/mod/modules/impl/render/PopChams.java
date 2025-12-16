@@ -30,6 +30,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public final class PopChams extends Module {
     private final ColorSetting color = add(new ColorSetting("Color", new Color(255, 255, 255)));
     private final SliderSetting alphaSpeed = add(new SliderSetting("AlphaSpeed", 0.2, 0, 1, 0.01));
+    private final SliderSetting fadeStart = add(new SliderSetting("FadeStart", 255, 0, 255));
+    private final SliderSetting range = add(new SliderSetting("Range", 64, 8, 256));
+    private final BooleanSetting self = add(new BooleanSetting("Self", false));
+    private final BooleanSetting rainbow = add(new BooleanSetting("Rainbow", false));
+    private final SliderSetting rainbowSpeed = add(new SliderSetting("RainbowSpeed", 5, 1, 20, () -> rainbow.getValue()));
 
     private final CopyOnWriteArrayList<Person> popList = new CopyOnWriteArrayList<>();
     public static PopChams INSTANCE;
@@ -52,13 +57,15 @@ public final class PopChams extends Module {
         RenderSystem.blendFuncSeparate(770, 771, 0, 1);
 
         popList.forEach(person -> {
+            if (mc.player.distanceTo(person.player) > range.getValue()) return;
+
             person.modelPlayer.leftPants.visible = false;
             person.modelPlayer.rightPants.visible = false;
             person.modelPlayer.leftSleeve.visible = false;
             person.modelPlayer.rightSleeve.visible = false;
             person.modelPlayer.jacket.visible = false;
             person.modelPlayer.hat.visible = false;
-            renderEntity(matrixStack, person.player, person.modelPlayer, person.getAlpha());
+            renderEntity(matrixStack, person.player, person.modelPlayer, person.getAlpha(), person.getRenderColor());
         });
 
         RenderSystem.disableBlend();
@@ -68,7 +75,8 @@ public final class PopChams extends Module {
 
     @EventHandler
     private void onTotemPop(TotemEvent e) {
-        if (e.getPlayer().equals(mc.player) || mc.world == null) return;
+        if (!self.getValue() && e.getPlayer().equals(mc.player)) return;
+        if (mc.world == null) return;
 
         PlayerEntity entity = new PlayerEntity(mc.world, BlockPos.ORIGIN, e.getPlayer().bodyYaw, new GameProfile(e.getPlayer().getUuid(), e.getPlayer().getName().getString())) {
             @Override
@@ -93,7 +101,7 @@ public final class PopChams extends Module {
         popList.add(new Person(entity));
     }
 
-    private void renderEntity(MatrixStack matrices, LivingEntity entity, BipedEntityModel<PlayerEntity> modelBase, int alpha) {
+    private void renderEntity(MatrixStack matrices, LivingEntity entity, BipedEntityModel<PlayerEntity> modelBase, int alpha, Color renderColor) {
         double x = entity.getX() - mc.getEntityRenderDispatcher().camera.getPos().getX();
         double y = entity.getY() - mc.getEntityRenderDispatcher().camera.getPos().getY();
         double z = entity.getZ() - mc.getEntityRenderDispatcher().camera.getPos().getZ();
@@ -113,7 +121,7 @@ public final class PopChams extends Module {
         RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
         buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
-        modelBase.render(matrices, buffer, 10, 0, color.getValue().getRed() / 255f, color.getValue().getGreen() / 255f, color.getValue().getBlue() / 255f, alpha / 255f);
+        modelBase.render(matrices, buffer, 10, 0, renderColor.getRed() / 255f, renderColor.getGreen() / 255f, renderColor.getBlue() / 255f, alpha / 255f);
         tessellator.draw();
         RenderSystem.disableBlend();
         RenderSystem.enableDepthTest();
@@ -130,12 +138,13 @@ public final class PopChams extends Module {
         private final PlayerEntity player;
         private final PlayerEntityModel<PlayerEntity> modelPlayer;
         private int alpha;
+        private int ticks = 0;
 
         public Person(PlayerEntity player) {
             this.player = player;
             modelPlayer = new PlayerEntityModel<>(new EntityRendererFactory.Context(mc.getEntityRenderDispatcher(), mc.getItemRenderer(), mc.getBlockRenderManager(), mc.getEntityRenderDispatcher().getHeldItemRenderer(), mc.getResourceManager(), mc.getEntityModelLoader(), mc.textRenderer).getPart(EntityModelLayers.PLAYER), false);
             modelPlayer.getHead().scale(new Vector3f(-0.3f, -0.3f, -0.3f));
-            alpha = color.getValue().getAlpha();
+            alpha = (int) fadeStart.getValue();
         }
 
         public void update(CopyOnWriteArrayList<Person> arrayList) {
@@ -147,10 +156,20 @@ public final class PopChams extends Module {
                 return;
             }
             alpha = (int) (AnimateUtil.animate(alpha, 0, alphaSpeed.getValue()) - 0.2);
+            ticks++;
         }
 
         public int getAlpha() {
             return (int) MathUtil.clamp(alpha, 0, 255);
+        }
+
+        public Color getRenderColor() {
+            if (rainbow.getValue()) {
+                long time = System.currentTimeMillis() + (ticks * 100L);
+                float hue = (time % (360000 / rainbowSpeed.getValue().intValue())) / (360000f / rainbowSpeed.getValue().intValue());
+                return Color.getHSBColor(hue, 1f, 1f);
+            }
+            return color.getValue();
         }
     }
 }

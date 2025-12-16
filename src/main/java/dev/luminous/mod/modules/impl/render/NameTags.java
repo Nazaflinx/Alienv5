@@ -33,27 +33,41 @@ import java.util.ArrayList;
 
 public class NameTags extends Module {
     public static NameTags INSTANCE;
-    private final SliderSetting scale = add(new SliderSetting("Scale", 0.68f, 0.1f, 2f, 0.01));
-    private final SliderSetting minScale = add(new SliderSetting("MinScale", 0.2f, 0.1f, 1f, 0.01));
-    private final SliderSetting scaled = add(new SliderSetting("Scaled", 1, 0, 2, 0.01));
-    private final SliderSetting offset = add(new SliderSetting("Offset", 0.315f, 0.001f, 1f, 0.001));
-    private final SliderSetting height = add(new SliderSetting("Height", 0, -3, 3, 0.01));
-    private final BooleanSetting god = add(new BooleanSetting("God", true));
-    private final BooleanSetting gamemode = add(new BooleanSetting("Gamemode", false));
-    private final BooleanSetting ping = add(new BooleanSetting("Ping", false));
-    private final BooleanSetting health = add(new BooleanSetting("Health", true));
-    private final BooleanSetting distance = add(new BooleanSetting("Distance", true));
-    private final BooleanSetting pops = add(new BooleanSetting("TotemPops", true));
-    private final BooleanSetting enchants = add(new BooleanSetting("Enchants", true));
-    private final ColorSetting outline = add(new ColorSetting("Outline", new Color(0x99FFFFFF, true)).injectBoolean(true));
-    private final ColorSetting rect = add(new ColorSetting("Rect", new Color(0x99000001, true)).injectBoolean(true));
-    private final ColorSetting friendColor = add(new ColorSetting("FriendColor", new Color(0xFF1DFF1D, true)));
-    private final ColorSetting color = add(new ColorSetting("Color", new Color(0xFFFFFFFF, true)));
 
-    public final EnumSetting<Font> font = add(new EnumSetting<>("FontMode", Font.Fast));
-    private final SliderSetting armorHeight = add(new SliderSetting("ArmorHeight", 0.3f, -10, 10f));
-    private final SliderSetting armorScale = add(new SliderSetting("ArmorScale", 0.9f, 0.1f, 2f, 0.01f));
-    private final EnumSetting<Armor> armorMode = add(new EnumSetting<>("ArmorMode", Armor.Full));
+    public final EnumSetting<Page> page = add(new EnumSetting<>("Page", Page.General));
+
+    private final SliderSetting scale = add(new SliderSetting("Scale", 0.68f, 0.1f, 2f, 0.01, () -> page.is(Page.General)));
+    private final SliderSetting minScale = add(new SliderSetting("MinScale", 0.2f, 0.1f, 1f, 0.01, () -> page.is(Page.General)));
+    private final SliderSetting scaled = add(new SliderSetting("Scaled", 1, 0, 2, 0.01, () -> page.is(Page.General)));
+    private final SliderSetting offset = add(new SliderSetting("Offset", 0.315f, 0.001f, 1f, 0.001, () -> page.is(Page.General)));
+    private final SliderSetting height = add(new SliderSetting("Height", 0, -3, 3, 0.01, () -> page.is(Page.General)));
+    private final SliderSetting range = add(new SliderSetting("Range", 128, 8, 256, 1, () -> page.is(Page.General)));
+    public final EnumSetting<Font> font = add(new EnumSetting<>("FontMode", Font.Fast, () -> page.is(Page.General)));
+
+    private final BooleanSetting god = add(new BooleanSetting("God", true, () -> page.is(Page.Info)));
+    private final BooleanSetting gamemode = add(new BooleanSetting("Gamemode", false, () -> page.is(Page.Info)));
+    private final BooleanSetting ping = add(new BooleanSetting("Ping", false, () -> page.is(Page.Info)));
+    private final BooleanSetting health = add(new BooleanSetting("Health", true, () -> page.is(Page.Info)));
+    private final BooleanSetting distance = add(new BooleanSetting("Distance", true, () -> page.is(Page.Info)));
+    private final BooleanSetting pops = add(new BooleanSetting("TotemPops", true, () -> page.is(Page.Info)));
+    private final BooleanSetting coords = add(new BooleanSetting("Coords", false, () -> page.is(Page.Info)));
+
+    private final ColorSetting outline = add(new ColorSetting("Outline", new Color(0x99FFFFFF, true), () -> page.is(Page.Colors)).injectBoolean(true));
+    private final ColorSetting rect = add(new ColorSetting("Rect", new Color(0x99000001, true), () -> page.is(Page.Colors)).injectBoolean(true));
+    private final ColorSetting friendColor = add(new ColorSetting("FriendColor", new Color(0xFF1DFF1D, true), () -> page.is(Page.Colors)));
+    private final ColorSetting color = add(new ColorSetting("Color", new Color(0xFFFFFFFF, true), () -> page.is(Page.Colors)));
+
+    private final BooleanSetting enchants = add(new BooleanSetting("Enchants", true, () -> page.is(Page.Armor)));
+    private final SliderSetting armorHeight = add(new SliderSetting("ArmorHeight", 0.3f, -10, 10f, () -> page.is(Page.Armor)));
+    private final SliderSetting armorScale = add(new SliderSetting("ArmorScale", 0.9f, 0.1f, 2f, 0.01f, () -> page.is(Page.Armor)));
+    private final EnumSetting<Armor> armorMode = add(new EnumSetting<>("ArmorMode", Armor.Full, () -> page.is(Page.Armor)));
+
+    public enum Page {
+        General,
+        Info,
+        Colors,
+        Armor
+    }
 
     public NameTags() {
         super("NameTags", Category.Render);
@@ -65,6 +79,9 @@ public class NameTags extends Module {
     public void onRender2D(DrawContext context, float tickDelta) {
         for (PlayerEntity ent : mc.world.getPlayers()) {
             if (ent == mc.player && mc.options.getPerspective().isFirstPerson() && Freecam.INSTANCE.isOff()) continue;
+
+            if (mc.player.distanceTo(ent) > range.getValue()) continue;
+
             double x = ent.prevX + (ent.getX() - ent.prevX) * mc.getTickDelta();
             double y = ent.prevY + (ent.getY() - ent.prevY) * mc.getTickDelta();
             double z = ent.prevZ + (ent.getZ() - ent.prevZ) * mc.getTickDelta();
@@ -96,6 +113,9 @@ public class NameTags extends Module {
                 }
                 if (pops.getValue() && Alien.POP.getPop(ent.getName().getString()) != 0) {
                     final_string += " §bPop" + " " + Formatting.LIGHT_PURPLE + Alien.POP.getPop(ent.getName().getString());
+                }
+                if (coords.getValue()) {
+                    final_string += " " + Formatting.GRAY + "[" + ent.getBlockX() + ", " + ent.getBlockY() + ", " + ent.getBlockZ() + "]";
                 }
 
                 double posX = position.x;

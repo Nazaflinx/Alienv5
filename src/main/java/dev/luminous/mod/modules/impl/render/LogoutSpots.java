@@ -3,6 +3,7 @@ package dev.luminous.mod.modules.impl.render;
 import com.google.common.collect.Maps;
 import dev.luminous.mod.modules.settings.impl.BooleanSetting;
 import dev.luminous.mod.modules.settings.impl.ColorSetting;
+import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import dev.luminous.api.events.eventbus.EventHandler;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.core.impl.CommandManager;
@@ -25,7 +26,11 @@ public class LogoutSpots extends Module {
     private final BooleanSetting box = add(new BooleanSetting("Box", true));
     private final BooleanSetting outline = add(new BooleanSetting("Outline", true));
     private final BooleanSetting text = add(new BooleanSetting("Text", true));
+    private final BooleanSetting distance = add(new BooleanSetting("Distance", true));
+    private final BooleanSetting coords = add(new BooleanSetting("Coords", false));
     private final BooleanSetting message = add(new BooleanSetting("Message", true));
+    private final SliderSetting range = add(new SliderSetting("Range", 256, 16, 512));
+    private final SliderSetting maxSpots = add(new SliderSetting("MaxSpots", 20, 1, 50));
 
     private final Map<UUID, PlayerEntity> playerCache = Maps.newConcurrentMap();
     private final Map<UUID, PlayerEntity> logoutCache = Maps.newConcurrentMap();
@@ -43,7 +48,10 @@ public class LogoutSpots extends Module {
                     for (UUID uuid : logoutCache.keySet()) {
                         if (!uuid.equals(addedPlayer.profile().getId())) continue;
                         PlayerEntity player = logoutCache.get(uuid);
-                        if (message.getValue()) CommandManager.sendChatMessage("§f" + player.getName().getString() + " §rLogged back at §f" + player.getBlockX() + ", " + player.getBlockY() + ", " + player.getBlockZ());
+                        if (message.getValue()) {
+                            double dist = mc.player.distanceTo(player);
+                            CommandManager.sendChatMessage("§f" + player.getName().getString() + " §alogged back §fat §e" + player.getBlockX() + ", " + player.getBlockY() + ", " + player.getBlockZ() + " §7(" + String.format("%.1f", dist) + "m)");
+                        }
                         logoutCache.remove(uuid);
                     }
                 }
@@ -55,7 +63,14 @@ public class LogoutSpots extends Module {
                     if (!uuid.equals(uuid2)) continue;
                     final PlayerEntity player = playerCache.get(uuid);
                     if (!logoutCache.containsKey(uuid)) {
-                        if (message.getValue()) CommandManager.sendChatMessage("§f" + player.getName().getString() + " §rLogged out at §f" + player.getBlockX() + ", " + player.getBlockY() + ", " + player.getBlockZ());
+                        if (logoutCache.size() >= maxSpots.getValue()) {
+                            UUID oldestKey = logoutCache.keySet().iterator().next();
+                            logoutCache.remove(oldestKey);
+                        }
+                        if (message.getValue()) {
+                            double dist = mc.player.distanceTo(player);
+                            CommandManager.sendChatMessage("§f" + player.getName().getString() + " §clogged out §fat §e" + player.getBlockX() + ", " + player.getBlockY() + ", " + player.getBlockZ() + " §7(" + String.format("%.1f", dist) + "m)");
+                        }
                         logoutCache.put(uuid, player);
                     }
                 }
@@ -83,9 +98,20 @@ public class LogoutSpots extends Module {
         for (UUID uuid : logoutCache.keySet()) {
             final PlayerEntity data = logoutCache.get(uuid);
             if (data == null) continue;
+
+            double dist = mc.player.distanceTo(data);
+            if (dist > range.getValue()) continue;
+
             Render3DUtil.draw3DBox(matrixStack, ((IEntity) data).getDimensions().getBoxAt(data.getPos()), color.getValue(), outline.getValue(), box.getValue());
             if (text.getValue()) {
-                Render3DUtil.drawText3D(data.getName().getString() + " Logged out", new Vec3d(data.getX(), ((IEntity) data).getDimensions().getBoxAt(data.getPos()).maxY + 0.5, data.getZ()), ColorUtil.injectAlpha(color.getValue(), 255));
+                String displayText = data.getName().getString();
+                if (distance.getValue()) {
+                    displayText += " §7(" + String.format("%.1f", dist) + "m)";
+                }
+                if (coords.getValue()) {
+                    displayText += " §7[" + data.getBlockX() + ", " + data.getBlockY() + ", " + data.getBlockZ() + "]";
+                }
+                Render3DUtil.drawText3D(displayText, new Vec3d(data.getX(), ((IEntity) data).getDimensions().getBoxAt(data.getPos()).maxY + 0.5, data.getZ()), ColorUtil.injectAlpha(color.getValue(), 255));
             }
         }
     }
