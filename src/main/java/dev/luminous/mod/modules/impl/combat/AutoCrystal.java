@@ -104,6 +104,7 @@ public class AutoCrystal extends Module {
     private final SliderSetting placeDelay = add(new SliderSetting("PlaceDelay", 50, 0, 1000, () -> page.getValue() == Page.Interact && place.isOpen()).setSuffix("ms"));
     private final EnumSetting<SwapMode> autoSwap = add(new EnumSetting<>("AutoSwap", SwapMode.Silent, () -> page.getValue() == Page.Interact && place.isOpen()));
     private final BooleanSetting afterBreak = add(new BooleanSetting("AfterBreak", true, () -> page.getValue() == Page.Interact && place.isOpen()));
+    private final BooleanSetting instantBreak = add(new BooleanSetting("InstantBreak", false, () -> page.getValue() == Page.Interact && place.isOpen()));
     private final BooleanSetting breakSetting = add(new BooleanSetting("Break", true, () -> page.getValue() == Page.Interact).setParent());
     private final SliderSetting breakDelay = add(new SliderSetting("BreakDelay", 50, 0, 1000, () -> page.getValue() == Page.Interact && breakSetting.isOpen()).setSuffix("ms"));
     private final SliderSetting minAge = add(new SliderSetting("MinAge", 0, 0, 20, () -> page.getValue() == Page.Interact && breakSetting.isOpen()).setSuffix("tick"));
@@ -132,6 +133,7 @@ public class AutoCrystal extends Module {
     private final BooleanSetting lite = add(new BooleanSetting("LessCPU", false, () -> page.getValue() == Page.Calc));
     private final SliderSetting predictTicks = add(new SliderSetting("Predict", 3, 0, 10, () -> page.getValue() == Page.Calc).setSuffix("ticks"));
     private final BooleanSetting terrainIgnore = add(new BooleanSetting("TerrainIgnore", true, () -> page.getValue() == Page.Calc));
+    private final BooleanSetting smartCalc = add(new BooleanSetting("SmartCalculation", true, () -> page.getValue() == Page.Calc));
     //Misc
     private final BooleanSetting ignoreMine = add(new BooleanSetting("IgnoreMine", true, () -> page.getValue() == Page.Misc).setParent());
     private final SliderSetting constantProgress = add(new SliderSetting("Progress", 90.0, 0.0, 100.0, () -> page.getValue() == Page.Misc && ignoreMine.isOpen()).setSuffix("%"));
@@ -374,14 +376,19 @@ public class AutoCrystal extends Module {
 
                 float bestDamage = 0;
                 PlayerAndPredict bestTarget = null;
+                float cachedSelfDamage = -1;
 
                 for (PlayerAndPredict pap : list) {
                     if (lite.getValue() && liteCheck(crystalPos, pap.predict.getPos())) continue;
 
                     float damage = calculateDamage(pos, pap.player, pap.predict);
-                    if (damage <= bestDamage) continue;
+                    if (smartCalc.getValue() && damage <= bestDamage) continue;
 
-                    float selfDamage = calculateDamage(pos, self.player, self.predict);
+                    if (cachedSelfDamage < 0) {
+                        cachedSelfDamage = calculateDamage(pos, self.player, self.predict);
+                    }
+                    float selfDamage = cachedSelfDamage;
+
                     if (selfDamage > maxSelfValue) continue;
                     if (noSuicideValue > 0 && selfDamage > playerHealth - noSuicideValue) continue;
 
@@ -451,12 +458,17 @@ public class AutoCrystal extends Module {
 
                 float maxBreakDamage = 0;
                 PlayerAndPredict bestBreakTarget = null;
+                float cachedSelfBreakDamage = -1;
 
                 for (PlayerAndPredict pap : list) {
                     float damage = calculateDamage(crystalPos, pap.player, pap.predict);
-                    if (damage <= maxBreakDamage && breakPos != null) continue;
+                    if (smartCalc.getValue() && damage <= maxBreakDamage && breakPos != null) continue;
 
-                    float selfDamage = calculateDamage(crystalPos, self.player, self.predict);
+                    if (cachedSelfBreakDamage < 0) {
+                        cachedSelfBreakDamage = calculateDamage(crystalPos, self.player, self.predict);
+                    }
+                    float selfDamage = cachedSelfBreakDamage;
+
                     if (selfDamage > maxSelfValue) continue;
                     if (noSuicideValue > 0 && selfDamage > playerHealth - noSuicideValue) continue;
 
@@ -671,7 +683,11 @@ public class AutoCrystal extends Module {
             }
             if (crystalPos != null && displayTarget != null && lastDamage >= getDamage(displayTarget) && afterBreak.getValue()) {
                 if (!yawStep.getValue() || !checkFov.getValue() || Alien.ROTATION.inFov(entity.getPos(), fov.getValueFloat())) {
-                    doPlace(crystalPos);
+                    if (instantBreak.getValue()) {
+                        doPlace(crystalPos);
+                    } else if (placeTimer.passedMs((long) placeDelay.getValue())) {
+                        doPlace(crystalPos);
+                    }
                 }
             }
             if (forceWeb.getValue() && AutoWeb.INSTANCE.isOn()) {
