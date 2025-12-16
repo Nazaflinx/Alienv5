@@ -33,7 +33,7 @@ public class Surround extends Module {
     public final SliderSetting placeDelay =
             add(new SliderSetting("PlaceDelay", 50, 0, 500, () -> page.is(Page.General)));
     private final SliderSetting blocksPer =
-            add(new SliderSetting("BlocksPer", 1, 1, 8, () -> page.is(Page.General)));
+            add(new SliderSetting("BlocksPer", 2, 1, 8, () -> page.is(Page.General)));
     private final BooleanSetting packetPlace =
             add(new BooleanSetting("PacketPlace", true, () -> page.is(Page.General)));
     private final BooleanSetting onlyTick =
@@ -42,6 +42,10 @@ public class Surround extends Module {
             add(new BooleanSetting("Break", true, () -> page.is(Page.General)).setParent());
     private final BooleanSetting eatPause =
             add(new BooleanSetting("EatingPause", true, () -> breakCrystal.isOpen()));
+    private final BooleanSetting autoDisable =
+            add(new BooleanSetting("AutoDisable", false, () -> page.is(Page.General)).setParent());
+    private final SliderSetting disableHealth =
+            add(new SliderSetting("DisableHP", 10, 0, 36, () -> page.is(Page.General) && autoDisable.isOpen()));
     private final BooleanSetting center =
             add(new BooleanSetting("Center", true, () -> page.is(Page.General)));
     public final BooleanSetting extend =
@@ -156,7 +160,14 @@ public class Surround extends Module {
 
     @Override
     public void onUpdate() {
+        if (nullCheck()) return;
         if (!timer.passedMs((long) placeDelay.getValue())) return;
+
+        if (autoDisable.getValue() && EntityUtil.getHealth(mc.player) <= disableHealth.getValue()) {
+            disable();
+            return;
+        }
+
         directionVec = null;
         progress = 0;
         placePositions.clear();
@@ -220,29 +231,40 @@ public class Surround extends Module {
     }
 
     private void extendSmart(BlockPos offsetPos, Direction mainDir) {
-        Direction[] priorityDirs = getPriorityDirections(mainDir);
-        for (Direction i2 : priorityDirs) {
-            if (i2 == Direction.UP) continue;
-            BlockPos offsetPos2 = offsetPos.offset(i2);
-            if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
-                collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+        try {
+            Direction[] priorityDirs = getPriorityDirections(mainDir);
+            for (Direction i2 : priorityDirs) {
+                if (i2 == Direction.UP) continue;
+                BlockPos offsetPos2 = offsetPos.offset(i2);
+                if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
+                    collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+                    if (placePositions.size() >= 16) break;
+                }
             }
+        } catch (Exception e) {
+            return;
         }
     }
 
     private void extendNormal(BlockPos offsetPos) {
-        for (Direction i2 : Direction.values()) {
-            if (i2 == Direction.UP) continue;
-            BlockPos offsetPos2 = offsetPos.offset(i2);
-            if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
-                for (Direction i3 : Direction.values()) {
-                    if (i3 == Direction.UP) continue;
-                    collectPlacePos(offsetPos2);
-                    BlockPos offsetPos3 = offsetPos2.offset(i3);
-                    collectPlacePos(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
+        try {
+            for (Direction i2 : Direction.values()) {
+                if (i2 == Direction.UP) continue;
+                BlockPos offsetPos2 = offsetPos.offset(i2);
+                if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
+                    for (Direction i3 : Direction.values()) {
+                        if (i3 == Direction.UP) continue;
+                        collectPlacePos(offsetPos2);
+                        BlockPos offsetPos3 = offsetPos2.offset(i3);
+                        collectPlacePos(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
+                        if (placePositions.size() >= 16) break;
+                    }
                 }
+                collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+                if (placePositions.size() >= 16) break;
             }
-            collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+        } catch (Exception e) {
+            return;
         }
     }
 
@@ -257,41 +279,47 @@ public class Surround extends Module {
     }
 
     private void tryPlaceBlock(BlockPos pos) {
-        if (pos == null) return;
-        if (detectMining.getValue() && Alien.BREAK.isMining(pos)) return;
-        if (!(progress < blocksPer.getValue())) return;
-        int block = getBlock();
-        if (block == -1) return;
-        Direction side = BlockUtil.getPlaceSide(pos);
-        if (side == null) return;
-        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
-        if (!BlockUtil.canPlace(pos, 6, true)) return;
-        if (rotate.getValue()) {
-            if (!faceVector(directionVec)) return;
-        }
-        if (breakCrystal.getValue()) {
-            CombatUtil.attackCrystal(pos, rotate.getValue(), eatPause.getValue());
-        } else if (BlockUtil.hasEntity(pos, false)) return;
-        int old = mc.player.getInventory().selectedSlot;
-        doSwap(block);
-        if (BlockUtil.airPlace()) {
-            BlockUtil.placedPos.add(pos);
-            BlockUtil.clickBlock(pos, Direction.DOWN, false, Hand.MAIN_HAND, packetPlace.getValue());
-        } else {
-            BlockUtil.placedPos.add(pos);
-            BlockUtil.clickBlock(pos.offset(side), side.getOpposite(), false, Hand.MAIN_HAND, packetPlace.getValue());
-        }
-        if (inventory.getValue()) {
+        try {
+            if (pos == null) return;
+            if (detectMining.getValue() && Alien.BREAK.isMining(pos)) return;
+            if (!(progress < blocksPer.getValue())) return;
+            int block = getBlock();
+            if (block == -1) return;
+            Direction side = BlockUtil.getPlaceSide(pos);
+            if (side == null) return;
+            Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+            if (!BlockUtil.canPlace(pos, 6, true)) return;
+            if (rotate.getValue()) {
+                if (!faceVector(directionVec)) return;
+            }
+            if (breakCrystal.getValue()) {
+                if (!CombatUtil.attackCrystal(pos, rotate.getValue(), eatPause.getValue())) {
+                    if (BlockUtil.hasEntity(pos, false)) return;
+                }
+            } else if (BlockUtil.hasEntity(pos, false)) return;
+            int old = mc.player.getInventory().selectedSlot;
             doSwap(block);
-            EntityUtil.syncInventory();
-        } else {
-            doSwap(old);
+            if (BlockUtil.airPlace()) {
+                BlockUtil.placedPos.add(pos);
+                BlockUtil.clickBlock(pos, Direction.DOWN, false, Hand.MAIN_HAND, packetPlace.getValue());
+            } else {
+                BlockUtil.placedPos.add(pos);
+                BlockUtil.clickBlock(pos.offset(side), side.getOpposite(), false, Hand.MAIN_HAND, packetPlace.getValue());
+            }
+            if (inventory.getValue()) {
+                doSwap(block);
+                EntityUtil.syncInventory();
+            } else {
+                doSwap(old);
+            }
+            if (rotate.getValue() && !yawStep.getValue() && AntiCheat.INSTANCE.snapBack.getValue()) {
+                Alien.ROTATION.snapBack();
+            }
+            progress++;
+            timer.reset();
+        } catch (Exception e) {
+            return;
         }
-        if (rotate.getValue() && !yawStep.getValue() && AntiCheat.INSTANCE.snapBack.getValue()) {
-            Alien.ROTATION.snapBack();
-        }
-        progress++;
-        timer.reset();
     }
     private boolean faceVector(Vec3d directionVec) {
         if (!yawStep.getValue()) {

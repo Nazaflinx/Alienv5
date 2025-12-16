@@ -187,9 +187,12 @@ public class AutoCrystal extends Module {
     DecimalFormat df = new DecimalFormat("0.0");
     @Override
     public String getInfo() {
-        if (displayTarget != null && lastDamage > 0) {
-            //return displayTarget.getName().getString() + ", " + new DecimalFormat("0.0").format(lastDamage);
-            return df.format(lastDamage);
+        try {
+            if (displayTarget != null && !displayTarget.isRemoved() && lastDamage > 0) {
+                return df.format(lastDamage);
+            }
+        } catch (Exception e) {
+            return null;
         }
         return null;
     }
@@ -325,40 +328,44 @@ public class AutoCrystal extends Module {
     }
 
     private void getCrystalPos() {
-        if (nullCheck()) {
-            lastBreakTimer.reset();
-            tempPos = null;
-            return;
-        }
-        if (!calcDelay.passedMs((long) updateDelay.getValue())) return;
-        if (breakOnlyHasCrystal.getValue() && !mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
-            lastBreakTimer.reset();
-            tempPos = null;
-            return;
-        }
-        boolean shouldReturn = shouldReturn();
-        calcDelay.reset();
-        breakPos = null;
-        breakDamage = 0;
-        tempPos = null;
-        tempDamage = 0f;
-
-        ArrayList<PlayerAndPredict> list = new ArrayList<>();
-        double targetRangeSq = targetRange.getValueFloat() * targetRange.getValueFloat();
-        Vec3d playerPos = mc.player.getPos();
-
-        for (PlayerEntity target : mc.world.getPlayers()) {
-            if (target == mc.player || !target.isAlive()) continue;
-            if (Alien.FRIEND.isFriend(target)) continue;
-            if (playerPos.squaredDistanceTo(target.getPos()) > targetRangeSq) continue;
-            if (target.hurtTime <= hurtTime.getValueInt()) {
-                list.add(new PlayerAndPredict(target));
+        try {
+            if (nullCheck() || mc.world == null || mc.player == null) {
+                lastBreakTimer.reset();
+                tempPos = null;
+                displayTarget = null;
+                return;
             }
-        }
-        PlayerAndPredict self = new PlayerAndPredict(mc.player);
-        if (list.isEmpty()) {
-            lastBreakTimer.reset();
-        } else {
+            if (!calcDelay.passedMs((long) updateDelay.getValue())) return;
+            if (breakOnlyHasCrystal.getValue() && !mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
+                lastBreakTimer.reset();
+                tempPos = null;
+                return;
+            }
+            boolean shouldReturn = shouldReturn();
+            calcDelay.reset();
+            breakPos = null;
+            breakDamage = 0;
+            tempPos = null;
+            tempDamage = 0f;
+
+            ArrayList<PlayerAndPredict> list = new ArrayList<>();
+            double targetRangeSq = targetRange.getValueFloat() * targetRange.getValueFloat();
+            Vec3d playerPos = mc.player.getPos();
+
+            for (PlayerEntity target : mc.world.getPlayers()) {
+                if (target == null || target == mc.player || !target.isAlive()) continue;
+                if (Alien.FRIEND.isFriend(target)) continue;
+                if (playerPos.squaredDistanceTo(target.getPos()) > targetRangeSq) continue;
+                if (target.hurtTime <= hurtTime.getValueInt()) {
+                    list.add(new PlayerAndPredict(target));
+                }
+            }
+            PlayerAndPredict self = new PlayerAndPredict(mc.player);
+            if (list.isEmpty()) {
+                lastBreakTimer.reset();
+                tempPos = null;
+                displayTarget = null;
+            } else {
             Vec3d eyePos = mc.player.getEyePos();
             double rangeValue = range.getValue();
             double rangeSq = rangeValue * rangeValue;
@@ -448,9 +455,11 @@ public class AutoCrystal extends Module {
             }
             double wallRangeValue = wallRange.getValue();
             for (Entity entity : mc.world.getEntities()) {
+                if (entity == null || entity.isRemoved()) continue;
                 if (!(entity instanceof EndCrystalEntity crystal)) continue;
 
                 Vec3d crystalPos = crystal.getPos();
+                if (crystalPos == null) continue;
                 double distSq = eyePos.squaredDistanceTo(crystalPos);
 
                 if (!mc.player.canSee(crystal) && distSq > wallRangeValue * wallRangeValue) continue;
@@ -490,7 +499,7 @@ public class AutoCrystal extends Module {
                     bestBreakTarget = pap;
                 }
 
-                if (bestBreakTarget != null) {
+                if (bestBreakTarget != null && bestBreakTarget.player != null && !bestBreakTarget.player.isRemoved()) {
                     breakPos = new BlockPosX(crystalPos);
                     breakDamage = maxBreakDamage;
                     if (maxBreakDamage > tempDamage) {
@@ -537,9 +546,14 @@ public class AutoCrystal extends Module {
                     }
                 }
             }
-        }
-        if (doCrystal.getValue() && tempPos != null && !shouldReturn) {
-            doCrystal(tempPos);
+            }
+            if (doCrystal.getValue() && tempPos != null && !shouldReturn) {
+                doCrystal(tempPos);
+            }
+        } catch (Exception e) {
+            tempPos = null;
+            displayTarget = null;
+            breakPos = null;
         }
     }
 
@@ -655,18 +669,20 @@ public class AutoCrystal extends Module {
     private final Timer syncTimer = new Timer();
 
     private void doBreak(BlockPos pos) {
-        noPosTimer.reset();
-        if (!breakSetting.getValue()) return;
-        if (displayTarget != null && displayTarget.hurtTime > waitHurt.getValueInt() && !syncTimer.passed(syncTimeout.getValue())) {
-            return;
-        }
-        lastBreakTimer.reset();
-        if (!switchTimer.passedMs((long) switchCooldown.getValue())) {
-            return;
-        }
-        syncTimer.reset();
-        for (EndCrystalEntity entity : BlockUtil.getEndCrystals(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1))) {
-            if (entity.age < minAge.getValueInt()) continue;
+        try {
+            noPosTimer.reset();
+            if (!breakSetting.getValue()) return;
+            if (displayTarget != null && !displayTarget.isRemoved() && displayTarget.hurtTime > waitHurt.getValueInt() && !syncTimer.passed(syncTimeout.getValue())) {
+                return;
+            }
+            lastBreakTimer.reset();
+            if (!switchTimer.passedMs((long) switchCooldown.getValue())) {
+                return;
+            }
+            syncTimer.reset();
+            for (EndCrystalEntity entity : BlockUtil.getEndCrystals(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1))) {
+                if (entity == null || entity.isRemoved()) continue;
+                if (entity.age < minAge.getValueInt()) continue;
             if (rotate.getValue() && onBreak.getValue()) {
                 if (!faceVector(entity.getPos().add(0, yOffset.getValue(), 0))) return;
             }
@@ -696,47 +712,56 @@ public class AutoCrystal extends Module {
             if (rotate.getValue() && !yawStep.getValue() && AntiCheat.INSTANCE.snapBack.getValue()) {
                 Alien.ROTATION.snapBack();
             }
-           return;
+            return;
+            }
+        } catch (Exception e) {
+            return;
         }
     }
 
     private void doPlace(BlockPos pos) {
-        noPosTimer.reset();
-        if (!place.getValue()) return;
-        if (!mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
-            return;
-        }
-        if (!canTouch(pos.down())) {
-            return;
-        }
-        BlockPos obsPos = pos.down();
-        Direction facing = BlockUtil.getClickSide(obsPos);
-        Vec3d vec = obsPos.toCenterPos().add(facing.getVector().getX() * 0.5, facing.getVector().getY() * 0.5, facing.getVector().getZ() * 0.5);
-        if (facing != Direction.UP && facing != Direction.DOWN) {
-            vec = vec.add(0, 0.45, 0);
-        }
-        if (rotate.getValue()) {
-            if (!faceVector(vec)) return;
-        }
-        if (!placeTimer.passedMs((long) placeDelay.getValue())) return;
-        if (mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) || mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL)) {
-            placeTimer.reset();
-            syncPos = pos;
-            placeCrystal(pos);
-        } else {
-            placeTimer.reset();
-            syncPos = pos;
-            int old = mc.player.getInventory().selectedSlot;
-            int crystal = getCrystal();
-            if (crystal == -1) return;
-            doSwap(crystal);
-            placeCrystal(pos);
-            if (autoSwap.getValue() == SwapMode.Silent) {
-                doSwap(old);
-            } else if (autoSwap.getValue() == SwapMode.Inventory) {
-                doSwap(crystal);
-                EntityUtil.syncInventory();
+        try {
+            noPosTimer.reset();
+            if (!place.getValue()) return;
+            if (pos == null) return;
+            if (!mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
+                return;
             }
+            if (!canTouch(pos.down())) {
+                return;
+            }
+            BlockPos obsPos = pos.down();
+            Direction facing = BlockUtil.getClickSide(obsPos);
+            if (facing == null) return;
+            Vec3d vec = obsPos.toCenterPos().add(facing.getVector().getX() * 0.5, facing.getVector().getY() * 0.5, facing.getVector().getZ() * 0.5);
+            if (facing != Direction.UP && facing != Direction.DOWN) {
+                vec = vec.add(0, 0.45, 0);
+            }
+            if (rotate.getValue()) {
+                if (!faceVector(vec)) return;
+            }
+            if (!placeTimer.passedMs((long) placeDelay.getValue())) return;
+            if (mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) || mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL)) {
+                placeTimer.reset();
+                syncPos = pos;
+                placeCrystal(pos);
+            } else {
+                placeTimer.reset();
+                syncPos = pos;
+                int old = mc.player.getInventory().selectedSlot;
+                int crystal = getCrystal();
+                if (crystal == -1) return;
+                doSwap(crystal);
+                placeCrystal(pos);
+                if (autoSwap.getValue() == SwapMode.Silent) {
+                    doSwap(old);
+                } else if (autoSwap.getValue() == SwapMode.Inventory) {
+                    doSwap(crystal);
+                    EntityUtil.syncInventory();
+                }
+            }
+        } catch (Exception e) {
+            return;
         }
     }
 
