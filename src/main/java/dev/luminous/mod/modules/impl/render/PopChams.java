@@ -3,6 +3,7 @@ package dev.luminous.mod.modules.impl.render;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.luminous.mod.modules.settings.impl.BooleanSetting;
 import dev.luminous.mod.modules.settings.impl.ColorSetting;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import dev.luminous.api.events.eventbus.EventHandler;
