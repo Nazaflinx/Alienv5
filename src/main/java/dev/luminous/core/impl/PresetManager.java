@@ -118,7 +118,7 @@ public class PresetManager implements Wrapper {
                             sliderSetting.setValue(settings.get(setting.getName()).getAsDouble());
                         } else if (setting instanceof EnumSetting<?> enumSetting) {
                             String enumValue = settings.get(setting.getName()).getAsString();
-                            enumSetting.setValueByName(enumValue);
+                            enumSetting.setEnumValue(enumValue);
                         } else if (setting instanceof StringSetting stringSetting) {
                             stringSetting.setValue(settings.get(setting.getName()).getAsString());
                         } else if (setting instanceof ColorSetting colorSetting) {

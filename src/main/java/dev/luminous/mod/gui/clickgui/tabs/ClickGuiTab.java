@@ -163,10 +163,11 @@ public class ClickGuiTab extends Tab {
 		if (popped) {
 			int i = defaultHeight;
 			for (Component child : children) {
-				if (child.matchesSearch(searchFilter)) {
-					child.draw(i, drawContext, partialTicks, color, false);
-					i += child.getHeight();
+				if (child instanceof ModuleComponent moduleComponent && !moduleComponent.matchesSearch(searchFilter)) {
+					continue;
 				}
+				child.draw(i, drawContext, partialTicks, color, false);
+				i += child.getHeight();
 			}
 		}
 		TextUtil.drawString(drawContext, this.title, x + 4, y + 3, new Color(255, 255, 255));

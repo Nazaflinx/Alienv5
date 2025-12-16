@@ -75,16 +75,11 @@ public abstract class Module extends Mod {
 		return getName();
 	}
 
+	public String getChinese() {
+		return this.chinese;
+	}
 
 	private final List<Setting> settings = new ArrayList<>();
-
-	public String getDescription() {
-		return this.description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
 
 	public Module.Category getCategory() {
 		return this.category;

@@ -18,6 +18,7 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Statistics extends Module {
@@ -90,6 +91,7 @@ public class Statistics extends Module {
 
     @Override
     public void onRender2D(DrawContext drawContext, float tickDelta) {
+        this.drawContext = drawContext;
         int x = posX.getValueInt();
         int y = posY.getValueInt();
         int width = 240;
@@ -121,23 +123,27 @@ public class Statistics extends Module {
 
         if (showModuleUsage.getValue() && !moduleUsageCount.isEmpty()) {
             textY += 4;
-            TextUtil.drawStringWithScale(drawContext, "§7Top Modules:", x + 8, textY, new Color(180, 180, 180), 0.9f, customFont.getValue());
+            TextUtil.drawStringWithScale(drawContext, "§7Top Modules:", (float)(x + 8), (float)textY, new Color(180, 180, 180), 0.9f);
             textY += lineHeight;
 
-            moduleUsageCount.entrySet().stream()
+            List<Map.Entry<String, Integer>> topModules = moduleUsageCount.entrySet().stream()
                 .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
                 .limit(3)
-                .forEach(entry -> {
-                    String text = "  " + entry.getKey() + ": §f" + entry.getValue();
-                    TextUtil.drawStringWithScale(drawContext, text, x + 8, textY + moduleUsageCount.entrySet().stream().sorted((a, b) -> b.getValue().compareTo(a.getValue())).toList().indexOf(entry) * lineHeight,
-                        new Color(200, 200, 200), 0.85f, customFont.getValue());
-                });
+                .toList();
+
+            int index = 0;
+            for (Map.Entry<String, Integer> entry : topModules) {
+                String text = "  " + entry.getKey() + ": §f" + entry.getValue();
+                TextUtil.drawStringWithScale(drawContext, text, (float)(x + 8), (float)(textY + index * lineHeight),
+                    new Color(200, 200, 200), 0.85f);
+                index++;
+            }
             textY += lineHeight * Math.min(3, moduleUsageCount.size());
         }
 
         if (showTPSGraph.getValue()) {
             textY += 6;
-            TextUtil.drawStringWithScale(drawContext, "§7TPS History:", x + 8, textY, new Color(180, 180, 180), 0.9f, customFont.getValue());
+            TextUtil.drawStringWithScale(drawContext, "§7TPS History:", (float)(x + 8), (float)textY, new Color(180, 180, 180), 0.9f);
             textY += lineHeight + 2;
             drawGraph(matrixStack, x + 8, textY, width - 16, 30, tpsHistory, 20f, new Color(46, 204, 113));
             textY += 35;
@@ -145,7 +151,7 @@ public class Statistics extends Module {
 
         if (showPingGraph.getValue()) {
             textY += 6;
-            TextUtil.drawStringWithScale(drawContext, "§7Ping History:", x + 8, textY, new Color(180, 180, 180), 0.9f, customFont.getValue());
+            TextUtil.drawStringWithScale(drawContext, "§7Ping History:", (float)(x + 8), (float)textY, new Color(180, 180, 180), 0.9f);
             textY += lineHeight + 2;
             drawGraph(matrixStack, x + 8, textY, width - 16, 30, convertIntToFloat(pingHistory), 200f, new Color(52, 152, 219));
         }
@@ -153,7 +159,7 @@ public class Statistics extends Module {
 
     private void drawStat(DrawContext drawContext, String label, String value, int x, int y) {
         String text = label + ": §f" + value;
-        TextUtil.drawStringWithScale(drawContext, text, x, y, new Color(200, 200, 200), 0.9f, customFont.getValue());
+        TextUtil.drawStringWithScale(drawContext, text, (float)x, (float)y, new Color(200, 200, 200), 0.9f);
     }
 
     private void drawGraph(MatrixStack matrixStack, int x, int y, int width, int height, float[] data, float maxValue, Color color) {
@@ -178,9 +184,11 @@ public class Statistics extends Module {
         }
 
         String avgText = String.format("Avg: %.1f", calculateAverage(data));
-        TextUtil.drawStringWithScale(null, avgText, x + width - 40, y + height - 10,
-            new Color(220, 220, 220, 180), 0.7f, customFont.getValue());
+        TextUtil.drawStringWithScale(drawContext, avgText, (float)(x + width - 40), (float)(y + height - 10),
+            new Color(220, 220, 220, 180), 0.7f);
     }
+
+    private DrawContext drawContext;
 
     private float calculateAverage(float[] data) {
         float sum = 0;
