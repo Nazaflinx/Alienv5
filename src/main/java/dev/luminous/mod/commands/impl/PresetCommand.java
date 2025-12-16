@@ -1,5 +1,7 @@
 package dev.luminous.mod.commands.impl;
 
+import dev.luminous.Alien;
+import dev.luminous.core.impl.CommandManager;
 import dev.luminous.core.impl.PresetManager;
 import dev.luminous.mod.commands.Command;
 
@@ -22,7 +24,7 @@ public class PresetCommand extends Command {
         switch (action) {
             case "save":
                 if (args.length < 2) {
-                    sendMessage("§cUsage: " + getPrefix() + "preset save <name>");
+                    CommandManager.sendChatMessage("§cUsage: " + Alien.PREFIX + "preset save <name>");
                     return;
                 }
                 PresetManager.savePreset(args[1]);
@@ -30,7 +32,7 @@ public class PresetCommand extends Command {
 
             case "load":
                 if (args.length < 2) {
-                    sendMessage("§cUsage: " + getPrefix() + "preset load <name>");
+                    CommandManager.sendChatMessage("§cUsage: " + Alien.PREFIX + "preset load <name>");
                     return;
                 }
                 PresetManager.loadPreset(args[1]);
@@ -38,7 +40,7 @@ public class PresetCommand extends Command {
 
             case "delete":
                 if (args.length < 2) {
-                    sendMessage("§cUsage: " + getPrefix() + "preset delete <name>");
+                    CommandManager.sendChatMessage("§cUsage: " + Alien.PREFIX + "preset delete <name>");
                     return;
                 }
                 PresetManager.deletePreset(args[1]);
@@ -47,11 +49,11 @@ public class PresetCommand extends Command {
             case "list":
                 List<String> presets = PresetManager.getPresets();
                 if (presets.isEmpty()) {
-                    sendMessage("§7No presets found.");
+                    CommandManager.sendChatMessage("§7No presets found.");
                 } else {
-                    sendMessage("§aAvailable Presets:");
+                    CommandManager.sendChatMessage("§aAvailable Presets:");
                     for (String preset : presets) {
-                        sendMessage("  §7- §f" + preset);
+                        CommandManager.sendChatMessage("  §7- §f" + preset);
                     }
                 }
                 break;

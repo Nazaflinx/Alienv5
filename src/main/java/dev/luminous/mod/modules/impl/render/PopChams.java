@@ -167,7 +167,7 @@ public final class PopChams extends Module {
         public Color getRenderColor() {
             if (rainbow.getValue()) {
                 long time = System.currentTimeMillis() + (ticks * 100L);
-                float hue = (time % (360000 / rainbowSpeed.getValue().intValue())) / (360000f / rainbowSpeed.getValue().intValue());
+                float hue = (time % (360000 / rainbowSpeed.getValueInt())) / (360000f / rainbowSpeed.getValueInt());
                 return Color.getHSBColor(hue, 1f, 1f);
             }
             return color.getValue();
