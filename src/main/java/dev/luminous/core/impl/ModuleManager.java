@@ -175,6 +175,9 @@ public class ModuleManager implements Wrapper {
         addModule(new Reach());
         addModule(new DiscordRPC());
         addModule(new Notifications());
+        addModule(new Aura());
+        addModule(new FeetPlace());
+        addModule(new AntiPhase());
         modules.sort(Comparator.comparing(Mod::getName));
     }
 
