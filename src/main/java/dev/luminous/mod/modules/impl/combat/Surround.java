@@ -22,6 +22,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+
 
 public class Surround extends Module {
     public static Surround INSTANCE;
@@ -49,6 +52,10 @@ public class Surround extends Module {
             add(new BooleanSetting("InventorySwap", true, () -> page.is(Page.General)));
     private final BooleanSetting enderChest =
             add(new BooleanSetting("EnderChest", true, () -> page.is(Page.General)));
+    private final BooleanSetting prioritize =
+            add(new BooleanSetting("Prioritize", true, () -> page.is(Page.General)));
+    private final BooleanSetting smartExtend =
+            add(new BooleanSetting("SmartExtend", true, () -> page.is(Page.General) && extend.isOpen()));
 
     private final BooleanSetting rotate =
             add(new BooleanSetting("Rotate", true, () -> page.getValue() == Page.Rotate));
@@ -83,12 +90,14 @@ public class Surround extends Module {
     double startY = 0;
     double startZ = 0;
     int progress = 0;
+    public Vec3d directionVec = null;
+    private final ArrayList<BlockPos> placePositions = new ArrayList<>();
+
     public Surround() {
         super("Surround", "Surrounds you with Obsidian", Category.Combat);
         setChinese("围脚");
         INSTANCE = this;
     }
-    public Vec3d directionVec = null;
     @EventHandler
     public void onRotate(LookAtEvent event) {
         if (directionVec != null && rotate.getValue() && yawStep.getValue()) {
@@ -150,6 +159,8 @@ public class Surround extends Module {
         if (!timer.passedMs((long) placeDelay.getValue())) return;
         directionVec = null;
         progress = 0;
+        placePositions.clear();
+
         if (!MovementUtil.isMoving() && !mc.options.jumpKey.isPressed()) {
             startX = mc.player.getX();
             startY = mc.player.getY();
@@ -173,30 +184,76 @@ public class Surround extends Module {
         }
 
         if (!inAir.getValue() && !mc.player.isOnGround()) return;
+
         for (Direction i : Direction.values()) {
             if (i == Direction.UP) continue;
             BlockPos offsetPos = pos.offset(i);
             if (BlockUtil.getPlaceSide(offsetPos) != null) {
-                tryPlaceBlock(offsetPos);
+                collectPlacePos(offsetPos);
             } else if (BlockUtil.canReplace(offsetPos)) {
-                tryPlaceBlock(getHelperPos(offsetPos));
+                collectPlacePos(getHelperPos(offsetPos));
             }
             if ((selfIntersectPos(offsetPos) || !onlySelf.getValue() && otherIntersectPos(offsetPos)) && extend.getValue()) {
-                for (Direction i2 : Direction.values()) {
-                    if (i2 == Direction.UP) continue;
-                    BlockPos offsetPos2 = offsetPos.offset(i2);
-                    if (selfIntersectPos(offsetPos2)|| !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
-                        for (Direction i3 : Direction.values()) {
-                            if (i3 == Direction.UP) continue;
-                            tryPlaceBlock(offsetPos2);
-                            BlockPos offsetPos3 = offsetPos2.offset(i3);
-                            tryPlaceBlock(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
-                        }
-                    }
-                    tryPlaceBlock(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+                if (smartExtend.getValue()) {
+                    extendSmart(offsetPos, i);
+                } else {
+                    extendNormal(offsetPos);
                 }
             }
         }
+
+        if (prioritize.getValue()) {
+            placePositions.sort(Comparator.comparingDouble(blockPos ->
+                mc.player.squaredDistanceTo(blockPos.toCenterPos())));
+        }
+
+        for (BlockPos placePos : placePositions) {
+            if (progress >= blocksPer.getValue()) break;
+            tryPlaceBlock(placePos);
+        }
+    }
+
+    private void collectPlacePos(BlockPos pos) {
+        if (pos != null && !placePositions.contains(pos)) {
+            placePositions.add(pos);
+        }
+    }
+
+    private void extendSmart(BlockPos offsetPos, Direction mainDir) {
+        Direction[] priorityDirs = getPriorityDirections(mainDir);
+        for (Direction i2 : priorityDirs) {
+            if (i2 == Direction.UP) continue;
+            BlockPos offsetPos2 = offsetPos.offset(i2);
+            if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
+                collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+            }
+        }
+    }
+
+    private void extendNormal(BlockPos offsetPos) {
+        for (Direction i2 : Direction.values()) {
+            if (i2 == Direction.UP) continue;
+            BlockPos offsetPos2 = offsetPos.offset(i2);
+            if (selfIntersectPos(offsetPos2) || !onlySelf.getValue() && otherIntersectPos(offsetPos2)) {
+                for (Direction i3 : Direction.values()) {
+                    if (i3 == Direction.UP) continue;
+                    collectPlacePos(offsetPos2);
+                    BlockPos offsetPos3 = offsetPos2.offset(i3);
+                    collectPlacePos(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
+                }
+            }
+            collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+        }
+    }
+
+    private Direction[] getPriorityDirections(Direction main) {
+        return switch (main) {
+            case NORTH -> new Direction[]{Direction.NORTH, Direction.WEST, Direction.EAST, Direction.SOUTH, Direction.DOWN};
+            case SOUTH -> new Direction[]{Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.NORTH, Direction.DOWN};
+            case WEST -> new Direction[]{Direction.WEST, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.DOWN};
+            case EAST -> new Direction[]{Direction.EAST, Direction.SOUTH, Direction.NORTH, Direction.WEST, Direction.DOWN};
+            default -> Direction.values();
+        };
     }
 
     private void tryPlaceBlock(BlockPos pos) {

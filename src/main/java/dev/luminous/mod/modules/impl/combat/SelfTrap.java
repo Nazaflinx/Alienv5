@@ -2,6 +2,7 @@ package dev.luminous.mod.modules.impl.combat;
 
 import dev.luminous.Alien;
 import dev.luminous.api.events.eventbus.EventHandler;
+import dev.luminous.api.events.impl.LookAtEvent;
 import dev.luminous.api.events.impl.MoveEvent;
 import dev.luminous.api.events.impl.UpdateWalkingPlayerEvent;
 import dev.luminous.core.impl.CommandManager;
@@ -12,61 +13,101 @@ import dev.luminous.api.utils.entity.MovementUtil;
 import dev.luminous.api.utils.math.Timer;
 import dev.luminous.api.utils.world.BlockUtil;
 import dev.luminous.mod.modules.Module;
+import dev.luminous.mod.modules.impl.client.AntiCheat;
 import dev.luminous.mod.modules.settings.impl.BooleanSetting;
+import dev.luminous.mod.modules.settings.impl.EnumSetting;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.Blocks;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class SelfTrap extends Module {
     public static SelfTrap INSTANCE;
     private final Timer timer = new Timer();
+
+    public final EnumSetting<Page> page = add(new EnumSetting<>("Page", Page.General));
+
     public final SliderSetting placeDelay =
-            add(new SliderSetting("PlaceDelay", 50, 0, 500));
+            add(new SliderSetting("PlaceDelay", 50, 0, 500, () -> page.is(Page.General)));
     private final SliderSetting blocksPer =
-            add(new SliderSetting("BlocksPer", 1, 1, 8));
-    private final BooleanSetting detectMining =
-            add(new BooleanSetting("DetectMining", false));
-    private final BooleanSetting onlyTick =
-            add(new BooleanSetting("OnlyTick", true));
-    private final BooleanSetting rotate =
-            add(new BooleanSetting("Rotate", true));
+            add(new SliderSetting("BlocksPer", 1, 1, 8, () -> page.is(Page.General)));
     private final BooleanSetting packetPlace =
-            add(new BooleanSetting("PacketPlace", true));
+            add(new BooleanSetting("PacketPlace", true, () -> page.is(Page.General)));
+    private final BooleanSetting onlyTick =
+            add(new BooleanSetting("OnlyTick", true, () -> page.is(Page.General)));
     private final BooleanSetting breakCrystal =
-            add(new BooleanSetting("Break", true).setParent());
+            add(new BooleanSetting("Break", true, () -> page.is(Page.General)).setParent());
     private final BooleanSetting eatPause =
-            add(new BooleanSetting("EatingPause", true, breakCrystal::isOpen));
-    private final BooleanSetting usingPause =
-            add(new BooleanSetting("UsingPause", true));
+            add(new BooleanSetting("EatingPause", true, () -> breakCrystal.isOpen()));
     private final BooleanSetting center =
-            add(new BooleanSetting("Center", true));
+            add(new BooleanSetting("Center", true, () -> page.is(Page.General)));
     public final BooleanSetting extend =
-            add(new BooleanSetting("Extend", true));
+            add(new BooleanSetting("Extend", true, () -> page.is(Page.General)));
     private final BooleanSetting inventory =
-            add(new BooleanSetting("InventorySwap", true));
-    public final BooleanSetting inAir =
-            add(new BooleanSetting("InAir", true));
-    private final BooleanSetting moveDisable =
-            add(new BooleanSetting("AutoDisable", true));
-    private final BooleanSetting jumpDisable =
-            add(new BooleanSetting("JumpDisable", true));
+            add(new BooleanSetting("InventorySwap", true, () -> page.is(Page.General)));
     private final BooleanSetting enderChest =
-            add(new BooleanSetting("EnderChest", true));
+            add(new BooleanSetting("EnderChest", true, () -> page.is(Page.General)));
+    private final BooleanSetting prioritize =
+            add(new BooleanSetting("Prioritize", true, () -> page.is(Page.General)));
+
+    private final BooleanSetting rotate =
+            add(new BooleanSetting("Rotate", true, () -> page.getValue() == Page.Rotate));
+    private final BooleanSetting yawStep =
+            add(new BooleanSetting("YawStep", false, () -> page.getValue() == Page.Rotate));
+    private final SliderSetting steps =
+            add(new SliderSetting("Steps", 0.05, 0, 1, 0.01, () -> page.getValue() == Page.Rotate && yawStep.getValue()));
+    private final BooleanSetting checkFov =
+            add(new BooleanSetting("OnlyLooking", true, () -> page.getValue() == Page.Rotate && yawStep.getValue()));
+    private final SliderSetting fov =
+            add(new SliderSetting("Fov", 5f, 0f, 30f, () -> checkFov.getValue() && page.getValue() == Page.Rotate));
+    private final SliderSetting priority = add(new SliderSetting("Priority", 10, 0, 100, () -> page.getValue() == Page.Rotate));
+
+    private final BooleanSetting detectMining =
+            add(new BooleanSetting("DetectMining", false, () -> page.is(Page.Check)));
+    private final BooleanSetting usingPause =
+            add(new BooleanSetting("UsingPause", true, () -> page.is(Page.Check)));
+    public final BooleanSetting inAir =
+            add(new BooleanSetting("InAir", true, () -> page.is(Page.Check)));
+    private final BooleanSetting moveDisable =
+            add(new BooleanSetting("AutoDisable", true, () -> page.is(Page.Check)));
+    private final BooleanSetting jumpDisable =
+            add(new BooleanSetting("JumpDisable", true, () -> page.is(Page.Check)));
+
     private final BooleanSetting head =
-            add(new BooleanSetting("Head", true));
+            add(new BooleanSetting("Head", true, () -> page.is(Page.Mode)));
     private final BooleanSetting feet =
-            add(new BooleanSetting("Feet", true));
+            add(new BooleanSetting("Feet", true, () -> page.is(Page.Mode)));
     private final BooleanSetting chest =
-            add(new BooleanSetting("Chest", true));
+            add(new BooleanSetting("Chest", true, () -> page.is(Page.Mode)));
+
+    public enum Page {
+        General,
+        Rotate,
+        Check,
+        Mode
+    }
 
     double startX = 0;
     double startY = 0;
     double startZ = 0;
     int progress = 0;
+    public Vec3d directionVec = null;
+    private final ArrayList<BlockPos> placePositions = new ArrayList<>();
+
     public SelfTrap() {
         super("SelfTrap", Category.Combat);
         setChinese("自我困住");
         INSTANCE = this;
+    }
+
+    @EventHandler
+    public void onRotate(LookAtEvent event) {
+        if (directionVec != null && rotate.getValue() && yawStep.getValue()) {
+            event.setTarget(directionVec, steps.getValueFloat(), priority.getValueFloat());
+        }
     }
 
 
@@ -122,7 +163,10 @@ public class SelfTrap extends Module {
     @Override
     public void onUpdate() {
         if (!timer.passedMs((long) placeDelay.getValue())) return;
+        directionVec = null;
         progress = 0;
+        placePositions.clear();
+
         if (!MovementUtil.isMoving() && !mc.options.jumpKey.isPressed()) {
             startX = mc.player.getX();
             startY = mc.player.getY();
@@ -146,21 +190,38 @@ public class SelfTrap extends Module {
         }
 
         if (!inAir.getValue() && !mc.player.isOnGround()) return;
+
         if (head.getValue()) {
-            tryPlaceBlock(pos.up(2));
+            collectPlacePos(pos.up(2));
         }
-        if (feet.getValue()) doSurround(pos);
-        if (chest.getValue()) doSurround(pos.up());
+        if (feet.getValue()) collectSurround(pos);
+        if (chest.getValue()) collectSurround(pos.up());
+
+        if (prioritize.getValue()) {
+            placePositions.sort(Comparator.comparingDouble(blockPos ->
+                mc.player.squaredDistanceTo(blockPos.toCenterPos())));
+        }
+
+        for (BlockPos placePos : placePositions) {
+            if (progress >= blocksPer.getValue()) break;
+            tryPlaceBlock(placePos);
+        }
     }
 
-    private void doSurround(BlockPos pos) {
+    private void collectPlacePos(BlockPos pos) {
+        if (pos != null && !placePositions.contains(pos)) {
+            placePositions.add(pos);
+        }
+    }
+
+    private void collectSurround(BlockPos pos) {
         for (Direction i : Direction.values()) {
             if (i == Direction.UP) continue;
             BlockPos offsetPos = pos.offset(i);
             if (BlockUtil.getPlaceSide(offsetPos) != null) {
-                tryPlaceBlock(offsetPos);
+                collectPlacePos(offsetPos);
             } else if (BlockUtil.canReplace(offsetPos)) {
-                tryPlaceBlock(getHelperPos(offsetPos));
+                collectPlacePos(getHelperPos(offsetPos));
             }
             if (selfIntersectPos(offsetPos) && extend.getValue()) {
                 for (Direction i2 : Direction.values()) {
@@ -169,12 +230,12 @@ public class SelfTrap extends Module {
                     if (selfIntersectPos(offsetPos2)) {
                         for (Direction i3 : Direction.values()) {
                             if (i3 == Direction.UP) continue;
-                            tryPlaceBlock(offsetPos2);
+                            collectPlacePos(offsetPos2);
                             BlockPos offsetPos3 = offsetPos2.offset(i3);
-                            tryPlaceBlock(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
+                            collectPlacePos(BlockUtil.getPlaceSide(offsetPos3) != null || !BlockUtil.canReplace(offsetPos3) ? offsetPos3 : getHelperPos(offsetPos3));
                         }
                     }
-                    tryPlaceBlock(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
+                    collectPlacePos(BlockUtil.getPlaceSide(offsetPos2) != null || !BlockUtil.canReplace(offsetPos2) ? offsetPos2 : getHelperPos(offsetPos2));
                 }
             }
         }
@@ -186,21 +247,60 @@ public class SelfTrap extends Module {
         int block = getBlock();
         if (block == -1) return;
 
+        Direction side = BlockUtil.getPlaceSide(pos);
+        if (side == null) return;
+
+        Vec3d placeVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5,
+                                     pos.getY() + 0.5 + side.getVector().getY() * 0.5,
+                                     pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+
         if (!BlockUtil.canPlace(pos, 6, true)) return;
+
+        if (rotate.getValue()) {
+            if (!faceVector(placeVec)) return;
+        }
+
         if (breakCrystal.getValue()) {
             CombatUtil.attackCrystal(pos, rotate.getValue(), eatPause.getValue());
         } else if (BlockUtil.hasEntity(pos, false)) return;
+
         int old = mc.player.getInventory().selectedSlot;
         doSwap(block);
-        BlockUtil.placeBlock(pos, rotate.getValue(), packetPlace.getValue());
+
+        if (BlockUtil.airPlace()) {
+            BlockUtil.placedPos.add(pos);
+            BlockUtil.clickBlock(pos, Direction.DOWN, false, Hand.MAIN_HAND, packetPlace.getValue());
+        } else {
+            BlockUtil.placedPos.add(pos);
+            BlockUtil.clickBlock(pos.offset(side), side.getOpposite(), false, Hand.MAIN_HAND, packetPlace.getValue());
+        }
+
         if (inventory.getValue()) {
             doSwap(block);
             EntityUtil.syncInventory();
         } else {
             doSwap(old);
         }
+
+        if (rotate.getValue() && !yawStep.getValue() && AntiCheat.INSTANCE.snapBack.getValue()) {
+            Alien.ROTATION.snapBack();
+        }
+
         progress++;
         timer.reset();
+    }
+
+    private boolean faceVector(Vec3d directionVec) {
+        if (!yawStep.getValue()) {
+            Alien.ROTATION.lookAt(directionVec);
+            return true;
+        } else {
+            this.directionVec = directionVec;
+            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+                return true;
+            }
+        }
+        return !checkFov.getValue();
     }
 
     public static boolean selfIntersectPos(BlockPos pos) {
