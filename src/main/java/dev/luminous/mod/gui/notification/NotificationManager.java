@@ -45,6 +45,30 @@ public class NotificationManager implements Wrapper {
         addNotification(title, message, Notification.Type.ERROR);
     }
 
+    public void module(String title, String message) {
+        addNotification(title, message, Notification.Type.MODULE);
+    }
+
+    public void combat(String title, String message) {
+        addNotification(title, message, Notification.Type.COMBAT);
+    }
+
+    public void player(String title, String message) {
+        addNotification(title, message, Notification.Type.PLAYER);
+    }
+
+    public void friend(String title, String message) {
+        addNotification(title, message, Notification.Type.FRIEND);
+    }
+
+    public void moduleToggle(String moduleName, boolean enabled) {
+        if (enabled) {
+            module("Module Enabled", moduleName + " has been enabled");
+        } else {
+            module("Module Disabled", moduleName + " has been disabled");
+        }
+    }
+
     public void draw(DrawContext drawContext) {
         if (mc == null || mc.getWindow() == null) return;
 

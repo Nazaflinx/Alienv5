@@ -116,7 +116,11 @@ public class Notification implements Wrapper {
         INFO("ℹ", new Color(52, 152, 219)),
         SUCCESS("✓", new Color(46, 204, 113)),
         WARNING("⚠", new Color(241, 196, 15)),
-        ERROR("✕", new Color(231, 76, 60));
+        ERROR("✕", new Color(231, 76, 60)),
+        MODULE("◆", new Color(155, 89, 182)),
+        COMBAT("⚔", new Color(192, 57, 43)),
+        PLAYER("☺", new Color(26, 188, 156)),
+        FRIEND("★", new Color(52, 152, 219));
 
         public final String icon;
         public final Color color;

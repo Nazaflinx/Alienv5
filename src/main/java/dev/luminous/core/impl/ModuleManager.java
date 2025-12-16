@@ -172,6 +172,9 @@ public class ModuleManager implements Wrapper {
         addModule(new ViewModel());
         addModule(new XCarry());
         addModule(new Zoom());
+        addModule(new Reach());
+        addModule(new DiscordRPC());
+        addModule(new Notifications());
         modules.sort(Comparator.comparing(Mod::getName));
     }
 

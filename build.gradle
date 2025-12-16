@@ -31,6 +31,9 @@ dependencies {
     include name: 'IAS-Fabric-1.20.4-9.0.2-SNAPSHOT'
     include name: 'baritone-fabric-1.10.2'
     include "org.ladysnake:satin:1.15.0"
+
+    implementation 'com.jagrosh:DiscordIPC:0.4'
+    include 'com.jagrosh:DiscordIPC:0.4'
 }
 
 processResources {
