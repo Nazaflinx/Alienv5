@@ -37,6 +37,7 @@ public class ModuleManager implements Wrapper {
         addModule(new FontSetting());
         addModule(new NoTerrainScreen());
         addModule(new AutoCrystal());
+        addModule(new CristalLunar());
         addModule(new Ambience());
         addModule(new AntiHunger());
         addModule(new AntiVoid());
