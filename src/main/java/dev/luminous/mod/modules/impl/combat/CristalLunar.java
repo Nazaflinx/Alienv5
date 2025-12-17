@@ -7,6 +7,7 @@ import dev.luminous.api.events.impl.UpdateWalkingPlayerEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
 import dev.luminous.api.utils.entity.EntityUtil;
 import dev.luminous.api.utils.entity.InventoryUtil;
+import dev.luminous.api.utils.math.ExplosionUtil;
 import dev.luminous.api.utils.math.Timer;
 import dev.luminous.api.utils.render.ColorUtil;
 import dev.luminous.api.utils.render.Render3DUtil;
@@ -107,8 +108,9 @@ public class CristalLunar extends Module {
             double distance = mc.player.getPos().distanceTo(crystal.getPos());
             if (distance > breakRange.getValue()) continue;
 
-            double damage = CombatUtil.calculateDamage(crystal.getPos(), target);
-            double selfDamage = CombatUtil.calculateDamage(crystal.getPos(), mc.player);
+            Vec3d crystalPos = crystal.getPos();
+            double damage = ExplosionUtil.calculateDamage(crystalPos.x, crystalPos.y, crystalPos.z, target, target, 6);
+            double selfDamage = ExplosionUtil.calculateDamage(crystalPos.x, crystalPos.y, crystalPos.z, mc.player, mc.player, 6);
 
             if (selfDamage > maxSelfDamage.getValue()) continue;
             if (damage < minDamage.getValue()) continue;
@@ -121,11 +123,11 @@ public class CristalLunar extends Module {
 
         if (bestCrystal != null) {
             if (rotate.getValue()) {
-                EntityUtil.faceVector(bestCrystal.getPos());
+                Alien.ROTATION.lookAt(bestCrystal.getPos());
             }
 
             mc.player.networkHandler.sendPacket(PlayerInteractEntityC2SPacket.attack(bestCrystal, mc.player.isSneaking()));
-            swingMode.getValue().swing(Hand.MAIN_HAND);
+            EntityUtil.swingHand(Hand.MAIN_HAND, swingMode.getValue());
             breakTimer.reset();
         }
     }
@@ -144,7 +146,7 @@ public class CristalLunar extends Module {
         for (double x = -placeRange.getValue(); x <= placeRange.getValue(); x++) {
             for (double y = -placeRange.getValue(); y <= placeRange.getValue(); y++) {
                 for (double z = -placeRange.getValue(); z <= placeRange.getValue(); z++) {
-                    BlockPos pos = BlockPosX.floor(mc.player.getX() + x, mc.player.getY() + y, mc.player.getZ() + z);
+                    BlockPos pos = new BlockPosX(mc.player.getX() + x, mc.player.getY() + y, mc.player.getZ() + z);
                     if (canPlaceCrystal(pos)) {
                         positions.add(pos);
                     }
@@ -153,8 +155,8 @@ public class CristalLunar extends Module {
         }
 
         for (BlockPos pos : positions) {
-            double damage = CombatUtil.calculateDamage(new Vec3d(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5), target);
-            double selfDamage = CombatUtil.calculateDamage(new Vec3d(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5), mc.player);
+            double damage = ExplosionUtil.calculateDamage(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, target, target, 6);
+            double selfDamage = ExplosionUtil.calculateDamage(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, mc.player, mc.player, 6);
 
             if (selfDamage > maxSelfDamage.getValue()) continue;
             if (damage < minDamage.getValue()) continue;
@@ -169,11 +171,11 @@ public class CristalLunar extends Module {
             renderPos = bestPos;
 
             if (rotate.getValue()) {
-                EntityUtil.faceVector(new Vec3d(bestPos.getX() + 0.5, bestPos.getY() + 0.5, bestPos.getZ() + 0.5));
+                Alien.ROTATION.lookAt(new Vec3d(bestPos.getX() + 0.5, bestPos.getY() + 0.5, bestPos.getZ() + 0.5));
             }
 
             BlockUtil.placeCrystal(bestPos, rotate.getValue());
-            swingMode.getValue().swing(Hand.MAIN_HAND);
+            EntityUtil.swingHand(Hand.MAIN_HAND, swingMode.getValue());
             placeTimer.reset();
         }
     }
