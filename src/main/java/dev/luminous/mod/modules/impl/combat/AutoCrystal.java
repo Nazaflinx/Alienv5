@@ -190,14 +190,10 @@ public class AutoCrystal extends Module {
     DecimalFormat df = new DecimalFormat("0.0");
     @Override
     public String getInfo() {
-        try {
-            if (displayTarget != null && !displayTarget.isRemoved() && lastDamage > 0) {
-                return df.format(lastDamage);
-            }
-        } catch (Exception e) {
-            return null;
+        if (displayTarget != null && !displayTarget.isRemoved() && lastDamage > 0) {
+            return df.format(lastDamage);
         }
-        return null;
+        return "";
     }
 
     @Override
