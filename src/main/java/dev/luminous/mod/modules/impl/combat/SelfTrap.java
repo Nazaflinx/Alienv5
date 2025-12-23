@@ -48,6 +48,8 @@ public class SelfTrap extends Module {
             add(new SliderSetting("OffHP", 16, 0, 36, () -> page.is(Page.General) && autoDisable.isOpen()));
     private final BooleanSetting center =
             add(new BooleanSetting("Center", true, () -> page.is(Page.General)));
+    private final BooleanSetting floor =
+            add(new BooleanSetting("Floor", true, () -> page.is(Page.General)));
     public final BooleanSetting extend =
             add(new BooleanSetting("Extend", true, () -> page.is(Page.General)));
     private final BooleanSetting inventory =
@@ -184,6 +186,15 @@ public class SelfTrap extends Module {
             startZ = mc.player.getZ();
         }
         BlockPos pos = EntityUtil.getPlayerPos(true);
+
+        if (floor.getValue()) {
+            BlockPos base = pos.down();
+            if (BlockUtil.getPlaceSide(base) != null) {
+                collectPlacePos(base);
+            } else if (BlockUtil.canReplace(base)) {
+                collectPlacePos(getHelperPos(base));
+            }
+        }
 
         double distanceToStart = MathHelper.sqrt((float) mc.player.squaredDistanceTo(startX, startY, startZ));
 

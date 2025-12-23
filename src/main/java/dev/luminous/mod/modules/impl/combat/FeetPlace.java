@@ -41,6 +41,7 @@ public class FeetPlace extends Module {
     private final BooleanSetting inventory = add(new BooleanSetting("InventorySwap", true, () -> page.getValue() == Page.General));
     private final BooleanSetting enderChest = add(new BooleanSetting("EnderChest", true, () -> page.getValue() == Page.General));
     private final BooleanSetting autoDisable = add(new BooleanSetting("AutoDisable", true, () -> page.getValue() == Page.General));
+    private final BooleanSetting support = add(new BooleanSetting("Support", true, () -> page.getValue() == Page.General));
 
     private final BooleanSetting smart = add(new BooleanSetting("Smart", true, () -> page.getValue() == Page.Logic).setParent());
     private final BooleanSetting prioritizeClose = add(new BooleanSetting("PrioritizeClose", true, () -> page.getValue() == Page.Logic && smart.isOpen()));
@@ -191,6 +192,12 @@ public class FeetPlace extends Module {
 
     private void addPlacePos(BlockPos pos) {
         if (!placePositions.contains(pos)) {
+            if (support.getValue()) {
+                BlockPos base = pos.down();
+                if (BlockUtil.canReplace(base) && !placePositions.contains(base) && BlockUtil.getPlaceSide(base) != null) {
+                    placePositions.add(base);
+                }
+            }
             placePositions.add(pos);
         }
     }

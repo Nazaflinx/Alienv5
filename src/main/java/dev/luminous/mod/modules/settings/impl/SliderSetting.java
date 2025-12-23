@@ -70,12 +70,14 @@ public class SliderSetting extends Setting {
 		return (int) this.value;
 	}
 
-	public final void setValue(double value) {
-		if (injectTask) {
-			task.run();
-		}
-		this.value = Math.round(value / increment) * increment;
-	}
+        public final void setValue(double value) {
+                double rounded = Math.round(value / increment) * increment;
+                if (rounded == this.value) return;
+                this.value = rounded;
+                if (injectTask) {
+                        task.run();
+                }
+        }
 
 	public final double getMinimum() {
 		return this.minValue;

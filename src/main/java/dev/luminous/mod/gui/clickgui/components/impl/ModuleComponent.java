@@ -136,15 +136,15 @@ public class ModuleComponent extends Component {
 	@Override
 	
 	
-	public boolean draw(int offset, DrawContext drawContext, float partialTicks, Color color, boolean back) {
-		RecalculateExpandedHeight();
-		String text = module.getDisplayName();
-		int parentX = parent.getX();
-		int parentY = parent.getY();
-		int parentWidth = parent.getWidth();
-		MatrixStack matrixStack = drawContext.getMatrices();
-		currentOffset = offsetAnimation.get(offset);
-		boolean scissor = ClickGui.fade.ease(FadeUtils.Ease.Out) >= 1;
+        public boolean draw(int offset, DrawContext drawContext, float partialTicks, Color color, boolean back) {
+                RecalculateExpandedHeight();
+                String text = module.getDisplayName();
+                int parentX = parent.getX();
+                int parentY = parent.getY();
+                int parentWidth = parent.getWidth();
+                MatrixStack matrixStack = drawContext.getMatrices();
+                currentOffset = offsetAnimation.get(offset);
+                boolean scissor = ClickGui.fade.ease(FadeUtils.Ease.Out) >= 1;
 		if (scissor) {
 			drawContext.enableScissor(parentX, (int) ((parentY + currentOffset + defaultHeight)), (parentX + parentWidth), mc.getWindow().getScaledHeight());
 		}
@@ -164,22 +164,27 @@ public class ModuleComponent extends Component {
 				drawContext.disableScissor();
 			}
 		}
-		if (scissor) {
-			drawContext.disableScissor();
-		}
-		currentWidth = animation.get(module.isOn() ? (parentWidth - 2D) : 0D);
-		if (ClickGui.INSTANCE.activeBox.getValue()) {
-			if (ClickGui.INSTANCE.mainEnd.booleanValue) {
-				Render2DUtil.drawRectHorizontal(matrixStack, parentX + 1, (int) (parentY + currentOffset), (float) currentWidth, defaultHeight - (ClickGui.INSTANCE.maxFill.getValue() ? 0 : 1), hovered ? ClickGui.INSTANCE.mainHover.getValue() : ClickGui.INSTANCE.color.getValue(), ClickGui.INSTANCE.mainEnd.getValue());
-			} else {
-				Render2DUtil.drawRect(matrixStack, parentX + 1, (int) (parentY + currentOffset), (float) currentWidth, defaultHeight - (ClickGui.INSTANCE.maxFill.getValue() ? 0 : 1), hovered ? ClickGui.INSTANCE.mainHover.getValue() : ClickGui.INSTANCE.color.getValue());
-			}
-		}
-		if (module.isOff() || !ClickGui.INSTANCE.activeBox.getValue())
-			Render2DUtil.drawRect(matrixStack, parentX + 1, (int) (parentY + currentOffset), parentWidth - 2, defaultHeight - (ClickGui.INSTANCE.maxFill.getValue() ? 0 : 1), hovered ? ClickGui.INSTANCE.moduleHover.getValue() : ClickGui.INSTANCE.module.getValue());
-		if (hovered && InputUtil.isKeyPressed(mc.getWindow().getHandle(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
-			TextUtil.drawString(drawContext, "Drawn " + (module.drawnSetting.getValue() ? "§aOn" : "§cOff"), (float) (parentX + 4), (float) (parentY + getTextOffsetY() + currentOffset) - 1, -1);
-		} else {
+                if (scissor) {
+                        drawContext.disableScissor();
+                }
+                currentWidth = animation.get(module.isOn() ? (parentWidth - 2D) : 0D);
+                float radius = ClickGui.INSTANCE.cornerRadius.getValueFloat();
+                float backgroundHeight = defaultHeight - (ClickGui.INSTANCE.maxFill.getValue() ? 0 : 1);
+                Color idleColor = hovered ? ClickGui.INSTANCE.moduleHover.getValue() : ClickGui.INSTANCE.module.getValue();
+                Render2DUtil.drawRound(matrixStack, parentX + 1, (float) (parentY + currentOffset), parentWidth - 2, backgroundHeight, radius, idleColor);
+                if (ClickGui.INSTANCE.activeBox.getValue() && module.isOn()) {
+                        if (ClickGui.INSTANCE.mainEnd.booleanValue) {
+                                Render2DUtil.drawRectHorizontal(matrixStack, parentX + 1, (int) (parentY + currentOffset), (float) currentWidth, backgroundHeight, hovered ? ClickGui.INSTANCE.mainHover.getValue() : ClickGui.INSTANCE.color.getValue(), ClickGui.INSTANCE.mainEnd.getValue());
+                        } else {
+                                Render2DUtil.drawRound(matrixStack, parentX + 1, (float) (parentY + currentOffset), (float) currentWidth, backgroundHeight, radius, hovered ? ClickGui.INSTANCE.mainHover.getValue() : ClickGui.INSTANCE.color.getValue());
+                        }
+                }
+                if (hovered) {
+                        Render2DUtil.drawRoundOutline(matrixStack, parentX + 1, (float) (parentY + currentOffset), parentWidth - 2, backgroundHeight, radius, 0.8f, new Color(255, 255, 255, 40));
+                }
+                if (hovered && InputUtil.isKeyPressed(mc.getWindow().getHandle(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
+                        TextUtil.drawString(drawContext, "Drawn " + (module.drawnSetting.getValue() ? "§aOn" : "§cOff"), (float) (parentX + 4), (float) (parentY + getTextOffsetY() + currentOffset) - 1, -1);
+                } else {
 			if (ClickGui.INSTANCE.center.getValue()) {
 				TextUtil.drawString(drawContext, text, parentX + parentWidth / 2f - TextUtil.getWidth(text) / 2, (float) (parentY + getTextOffsetY() + currentOffset) - 1,
 						module.isOn() ? ClickGui.INSTANCE.enableText.getValue().getRGB() : ClickGui.INSTANCE.disableText.getValue().getRGB());

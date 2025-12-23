@@ -71,6 +71,9 @@ public class AutoCrystal extends Module {
     private final BooleanSetting breakOnlyHasCrystal = add(new BooleanSetting("OnlyHold", false, () -> page.getValue() == Page.General));
     private final EnumSetting<SwingSide> swingMode = add(new EnumSetting<>("Swing", SwingSide.Server, () -> page.getValue() == Page.General));
     private final BooleanSetting eatingPause = add(new BooleanSetting("EatingPause", false, () -> page.getValue() == Page.General));
+    private final BooleanSetting aggressiveTicks = add(new BooleanSetting("AggroTicks", true, () -> page.getValue() == Page.General).setParent());
+    private final SliderSetting aggressiveDelayCap = add(new SliderSetting("AggroCap", 35, 0, 300, () -> page.getValue() == Page.General && aggressiveTicks.isOpen()).setSuffix("ms"));
+    private final SliderSetting aggressiveDelayScale = add(new SliderSetting("AggroScale", 0.35, 0.05, 1, 0.05, () -> page.getValue() == Page.General && aggressiveTicks.isOpen()));
     private final SliderSetting switchCooldown = add(new SliderSetting("SwitchPause", 50, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
     private final SliderSetting targetRange = add(new SliderSetting("TargetRange", 15.0, 0.0, 20.0, () -> page.getValue() == Page.General).setSuffix("m"));
     private final SliderSetting updateDelay = add(new SliderSetting("UpdateDelay", 0, 0, 1000, () -> page.getValue() == Page.General).setSuffix("ms"));
@@ -335,7 +338,7 @@ public class AutoCrystal extends Module {
                 displayTarget = null;
                 return;
             }
-            if (!calcDelay.passedMs((long) updateDelay.getValue())) return;
+            if (!calcDelay.passedMs(getAggroDelay(updateDelay))) return;
             if (breakOnlyHasCrystal.getValue() && !mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
                 lastBreakTimer.reset();
                 tempPos = null;
@@ -615,6 +618,19 @@ public class AutoCrystal extends Module {
         }
     }
 
+    private long getAggroDelay(SliderSetting setting) {
+        long baseDelay = (long) setting.getValue();
+        if (!aggressiveTicks.getValue()) {
+            return baseDelay;
+        }
+        if (displayTarget == null && tempPos == null) {
+            return baseDelay;
+        }
+        long scaledDelay = (long) (baseDelay * aggressiveDelayScale.getValue());
+        long cappedDelay = aggressiveDelayCap.getValue() > 0 ? Math.min(scaledDelay, (long) aggressiveDelayCap.getValue()) : scaledDelay;
+        return Math.max(0L, cappedDelay);
+    }
+
     public float calculateDamage(BlockPos pos, PlayerEntity player, PlayerEntity predict) {
         return calculateDamage(new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5), player, predict);
     }
@@ -676,7 +692,7 @@ public class AutoCrystal extends Module {
                 return;
             }
             lastBreakTimer.reset();
-            if (!switchTimer.passedMs((long) switchCooldown.getValue())) {
+            if (!switchTimer.passedMs(getAggroDelay(switchCooldown))) {
                 return;
             }
             syncTimer.reset();
@@ -686,7 +702,7 @@ public class AutoCrystal extends Module {
             if (rotate.getValue() && onBreak.getValue()) {
                 if (!faceVector(entity.getPos().add(0, yOffset.getValue(), 0))) return;
             }
-            if (!CombatUtil.breakTimer.passedMs((long) breakDelay.getValue())) return;
+            if (!CombatUtil.breakTimer.passedMs(getAggroDelay(breakDelay))) return;
             animation.to = 1;
             animation.from = 1;
             CombatUtil.breakTimer.reset();
@@ -740,7 +756,7 @@ public class AutoCrystal extends Module {
             if (rotate.getValue()) {
                 if (!faceVector(vec)) return;
             }
-            if (!placeTimer.passedMs((long) placeDelay.getValue())) return;
+            if (!placeTimer.passedMs(getAggroDelay(placeDelay))) return;
             if (mc.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) || mc.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL)) {
                 placeTimer.reset();
                 syncPos = pos;

@@ -10,6 +10,7 @@ import dev.luminous.core.impl.GuiManager;
 import dev.luminous.api.utils.render.Render2DUtil;
 import dev.luminous.api.utils.render.TextUtil;
 import dev.luminous.mod.gui.clickgui.ClickGuiScreen;
+import dev.luminous.mod.modules.impl.client.ClickGui;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.math.MatrixStack;
@@ -141,28 +142,38 @@ public class ClickGuiTab extends Tab {
 	@Override
 	
 	
-	public void draw(DrawContext drawContext, float partialTicks, Color color) {
-		int tempHeight = 1;
-		for (ModuleComponent child : children) {
+        public void draw(DrawContext drawContext, float partialTicks, Color color) {
+                int tempHeight = 1;
+                for (ModuleComponent child : children) {
 			if (child.matchesSearch(searchFilter)) {
 				tempHeight += (child.getHeight());
 			}
 		}
 		this.height = tempHeight;
 
-		MatrixStack matrixStack = drawContext.getMatrices();
-		currentHeight = animation.get(height);
-		if (drawBorder) {
-			if (ClickGui.INSTANCE.barEnd.booleanValue) {
-				Render2DUtil.drawRectVertical(matrixStack, x, y - 1, width, 15, ClickGui.INSTANCE.bar.getValue(), ClickGui.INSTANCE.barEnd.getValue());
-			} else {
-				Render2DUtil.drawRect(matrixStack, x, y - 1, width, 15, ClickGui.INSTANCE.bar.getValue());
-			}
-			if (popped) Render2DUtil.drawRect(matrixStack, x, y + 14, width, (int) currentHeight, ClickGui.INSTANCE.background.getValue());
-		}
-		if (popped) {
-			int i = defaultHeight;
-			for (Component child : children) {
+                MatrixStack matrixStack = drawContext.getMatrices();
+                currentHeight = animation.get(height);
+                float radius = ClickGui.INSTANCE.cornerRadius.getValueFloat();
+                float headerHeight = 15f;
+                float bodyHeight = popped ? (float) currentHeight : 0f;
+                float totalHeight = headerHeight + bodyHeight;
+                if (drawBorder) {
+                        if (ClickGui.INSTANCE.shadow.getValue()) {
+                                Render2DUtil.drawRound(matrixStack, x + 1.5f, y + 1.5f, width, totalHeight, radius + 1.5f, new Color(0, 0, 0, 55));
+                        }
+                        Render2DUtil.drawRound(matrixStack, x, y - 1, width, totalHeight, radius, ClickGui.INSTANCE.background.getValue());
+                        if (ClickGui.INSTANCE.barEnd.booleanValue) {
+                                Render2DUtil.drawRectHorizontal(matrixStack, x, y - 1, width, headerHeight, ClickGui.INSTANCE.bar.getValue(), ClickGui.INSTANCE.barEnd.getValue());
+                        } else {
+                                Render2DUtil.drawRect(matrixStack, x, y - 1, width, headerHeight, ClickGui.INSTANCE.bar.getValue());
+                        }
+                        if (popped && bodyHeight > 0) {
+                                Render2DUtil.drawRound(matrixStack, x, y + headerHeight - 1, width, bodyHeight + 1, radius, ClickGui.INSTANCE.background.getValue());
+                        }
+                }
+                if (popped) {
+                        int i = defaultHeight;
+                        for (Component child : children) {
 				if (child instanceof ModuleComponent moduleComponent && !moduleComponent.matchesSearch(searchFilter)) {
 					continue;
 				}

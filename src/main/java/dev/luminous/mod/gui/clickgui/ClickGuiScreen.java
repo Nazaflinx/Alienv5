@@ -3,12 +3,16 @@ package dev.luminous.mod.gui.clickgui;
 import dev.luminous.Alien;
 import dev.luminous.mod.gui.clickgui.tabs.Tab;
 import dev.luminous.mod.gui.notification.NotificationManager;
+import dev.luminous.mod.modules.impl.client.ClickGui;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import dev.luminous.mod.modules.settings.impl.StringSetting;
 import dev.luminous.api.utils.Wrapper;
+import dev.luminous.api.utils.render.Render2DUtil;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+
+import java.awt.*;
 
 public class ClickGuiScreen extends Screen implements Wrapper {
 
@@ -30,6 +34,14 @@ public class ClickGuiScreen extends Screen implements Wrapper {
     @Override
     public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.render(drawContext, mouseX, mouseY, partialTicks);
+        if (ClickGui.INSTANCE.glass.getValue()) {
+            int width = mc.getWindow().getScaledWidth();
+            int height = mc.getWindow().getScaledHeight();
+            Render2DUtil.verticalGradient(drawContext.getMatrices(), 0, 0, width, height,
+                    new Color(0, 0, 0, 90), new Color(20, 20, 40, 180));
+            Render2DUtil.horizontalGradient(drawContext.getMatrices(), 0, 0, width, height,
+                    new Color(0, 180, 255, 40), new Color(138, 43, 226, 40));
+        }
         Alien.GUI.draw(mouseX, mouseY, drawContext, partialTicks);
         searchBar.draw(drawContext, mouseX, mouseY);
         tooltip.draw(drawContext);
