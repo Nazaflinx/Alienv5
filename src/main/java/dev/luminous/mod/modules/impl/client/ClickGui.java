@@ -25,14 +25,17 @@ public class ClickGui extends Module {
 	public final ColorSetting bind = add(new ColorSetting("Bind", new Color(255, 255, 255), () -> page.getValue() == Pages.Element).injectBoolean(false));
 	public final ColorSetting gear = add(new ColorSetting("Gear", new Color(255, 255, 255), () -> page.getValue() == Pages.Element).injectBoolean(true));
 
-	public final BooleanSetting chinese = add(new BooleanSetting("Chinese", false, () -> page.getValue() == Pages.General));
-	public final BooleanSetting font = add(new BooleanSetting("Font", true, () -> page.getValue() == Pages.General));
-	public final BooleanSetting maxFill = add(new BooleanSetting("MaxFill", false, () -> page.getValue() == Pages.General));
-	public final BooleanSetting sound = add(new BooleanSetting("Sound", true, () -> page.getValue() == Pages.General));
-	public final SliderSetting height = add(new SliderSetting("Height", 15, 10, 20, 1, () -> page.getValue() == Pages.General));
-	public final EnumSetting<Mode> mode = add(new EnumSetting<>("EnableAnim", Mode.Pull, () -> page.getValue() == Pages.General));
-	public final SliderSetting animationTime = add(new SliderSetting("AnimationTime", 200, 0, 1000, 1, () -> page.getValue() == Pages.General));
-	public final EnumSetting<Easing> ease = add(new EnumSetting<>("Ease", Easing.QuadInOut, () -> page.getValue() == Pages.General));
+        public final BooleanSetting chinese = add(new BooleanSetting("Chinese", false, () -> page.getValue() == Pages.General));
+        public final BooleanSetting font = add(new BooleanSetting("Font", true, () -> page.getValue() == Pages.General));
+        public final BooleanSetting maxFill = add(new BooleanSetting("MaxFill", false, () -> page.getValue() == Pages.General));
+        public final BooleanSetting sound = add(new BooleanSetting("Sound", true, () -> page.getValue() == Pages.General));
+        public final BooleanSetting glass = add(new BooleanSetting("Glass", true, () -> page.getValue() == Pages.General));
+        public final BooleanSetting shadow = add(new BooleanSetting("Shadow", true, () -> page.getValue() == Pages.General));
+        public final SliderSetting cornerRadius = add(new SliderSetting("CornerRadius", 4, 0, 6, 1, () -> page.getValue() == Pages.General));
+        public final SliderSetting height = add(new SliderSetting("Height", 15, 10, 20, 1, () -> page.getValue() == Pages.General));
+        public final EnumSetting<Mode> mode = add(new EnumSetting<>("EnableAnim", Mode.Pull, () -> page.getValue() == Pages.General));
+        public final SliderSetting animationTime = add(new SliderSetting("AnimationTime", 200, 0, 1000, 1, () -> page.getValue() == Pages.General));
+        public final EnumSetting<Easing> ease = add(new EnumSetting<>("Ease", Easing.QuadInOut, () -> page.getValue() == Pages.General));
 
 	public final ColorSetting color = add(new ColorSetting("Main", new Color(0, 180, 255, 200), () -> page.getValue() == Pages.Color));
 	public final ColorSetting mainEnd = add(new ColorSetting("MainEnd", new Color(138, 43, 226, 200), () -> page.getValue() == Pages.Color).injectBoolean(true));

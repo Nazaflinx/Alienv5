@@ -11,6 +11,8 @@ public class EnumSetting<T extends Enum<T>> extends Setting {
     private T value;
     private final T defaultValue;
     public boolean popped = false;
+    public Runnable task = null;
+    public boolean injectTask = false;
     public EnumSetting(String name, T defaultValue) {
         super(name, ModuleManager.lastLoadMod.getName() + "_" + name);
         this.value = defaultValue;
@@ -24,16 +26,26 @@ public class EnumSetting<T extends Enum<T>> extends Setting {
     }
 
     public void increaseEnum() {
-        value = (T) EnumConverter.increaseEnum(value);
+        T newValue = (T) EnumConverter.increaseEnum(value);
+        setValue(newValue);
     }
 
     public final T getValue() {
         return this.value;
     }
+    public void setValue(T value) {
+        if (value == null || value == this.value) {
+            return;
+        }
+        this.value = value;
+        if (injectTask) {
+            task.run();
+        }
+    }
     public void setEnumValue(String value) {
         for (T e : this.value.getDeclaringClass().getEnumConstants()) {
             if (!e.name().equalsIgnoreCase(value)) continue;
-            this.value = e;
+            setValue(e);
         }
     }
     @Override
@@ -46,13 +58,19 @@ public class EnumSetting<T extends Enum<T>> extends Setting {
         }
         Enum<?> value = converter.get(defaultValue, enumString);
         if (value != null) {
-            this.value = (T) value;
+            setValue((T) value);
         } else {
-            this.value = defaultValue;
+            setValue(defaultValue);
         }
     }
 
     public boolean is(T mode) {
         return getValue() == mode;
+    }
+
+    public EnumSetting<T> injectTask(Runnable task) {
+        this.task = task;
+        injectTask = true;
+        return this;
     }
 }

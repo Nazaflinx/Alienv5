@@ -73,6 +73,8 @@ public class CristalLunar extends Module {
     public void onEnable() {
         renderPos = null;
         target = null;
+        breakTimer.reset();
+        placeTimer.reset();
     }
 
     @Override
@@ -86,7 +88,7 @@ public class CristalLunar extends Module {
         if (nullCheck()) return;
 
         target = CombatUtil.getClosestEnemy(targetRange.getValueFloat());
-        if (target == null) return;
+        if (target == null || !target.isAlive() || target.isRemoved()) return;
 
         if (breakTimer.passedMs((long) breakDelay.getValue())) {
             breakCrystal();
@@ -98,6 +100,8 @@ public class CristalLunar extends Module {
     }
 
     private void breakCrystal() {
+        if (target == null || !target.isAlive() || target.isRemoved()) return;
+
         EndCrystalEntity bestCrystal = null;
         double bestDamage = 0;
 
@@ -133,10 +137,14 @@ public class CristalLunar extends Module {
     }
 
     private void placeCrystal() {
+        if (target == null || !target.isAlive() || target.isRemoved()) return;
+
         if (autoSwitch.getValue()) {
             int crystalSlot = InventoryUtil.findItem(Items.END_CRYSTAL);
             if (crystalSlot == -1) return;
             InventoryUtil.switchToSlot(crystalSlot);
+        } else if (!mc.player.getMainHandStack().isOf(Items.END_CRYSTAL) && !mc.player.getOffHandStack().isOf(Items.END_CRYSTAL)) {
+            return;
         }
 
         BlockPos bestPos = null;
